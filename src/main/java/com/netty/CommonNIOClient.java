@@ -13,20 +13,12 @@ import java.nio.channels.SocketChannel;
  * nio 客户端
  * Created by guzy on 16/9/18.
  */
-public class CommonNIOClient extends CommonServer{
+public class CommonNIOClient extends CommonClient {
 
-    public CommonNIOClient(String host, int port,String name) throws IOException{
-        super(name);
-        SocketChannel channel=SocketChannel.open();
-        channel.configureBlocking(false);
 
-        selector=Selector.open();
-      //  channel.socket().setTcpNoDelay(true);
-        channel.register(selector, SelectionKey.OP_CONNECT);
-        channel.connect(new InetSocketAddress(host, port));
-        this.channel=channel;
+    public CommonNIOClient(String host, int port, String name) throws IOException {
+        super(host, port, name);
     }
-
 
     public static void main(String[] args) throws IOException {
         final CommonNIOClient client=new CommonNIOClient("127.0.0.1",8888,"client");
