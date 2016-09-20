@@ -34,6 +34,10 @@ public abstract class CommonWorker {
         executorService= Executors.newFixedThreadPool(10);
     }
 
+    public static void main(String[] args) throws IOException{
+        System.out.println(1<<2);
+    }
+
     public CompleteHandler getCompleteHandler() {
         return completeHandler;
     }
@@ -43,6 +47,8 @@ public abstract class CommonWorker {
         return this;
     }
 
+    abstract void registerSelectionKey() throws ClosedChannelException;
+
     public void addContentHandler(ContentHandler contentHandler){
         contentHandlers.add(contentHandler);
     }
@@ -50,7 +56,7 @@ public abstract class CommonWorker {
     public void start()throws IOException {
        try{
            while(true){
-               //registerSelectionKey();
+               registerSelectionKey();
                selector.select();
                final Set<SelectionKey> selectionKeys= selector.selectedKeys();
                for(final SelectionKey selectionKey:selectionKeys){
@@ -61,7 +67,7 @@ public abstract class CommonWorker {
                    bossExecs.execute(new Runnable() {
                        public void run() {
                            try {
-                             //  System.out.println(String.format("selectionKey isWritable:%s,isReadable:%s",selectionKey.isWritable(),selectionKey.isReadable()));
+                              System.out.println(String.format("selectionKey isWritable:%s,isReadable:%s",selectionKey.isWritable(),selectionKey.isReadable()));
                                handleKey(selectionKey);
                            } catch (IOException ex) {
                                selectionKey.cancel();

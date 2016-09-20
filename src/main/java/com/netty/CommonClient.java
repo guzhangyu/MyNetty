@@ -2,6 +2,7 @@ package com.netty;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
@@ -39,6 +40,13 @@ public class CommonClient extends CommonWorker {
 
     }
 
+    void registerSelectionKey() throws ClosedChannelException {
+        if(!toWrites.isEmpty()){
+            System.out.println("dd");
+            socketChannel.register(selector, SelectionKey.OP_WRITE);
+        }
+    }
+
     @Override
     void handleKey(SelectionKey selectionKey) throws IOException {
 
@@ -52,13 +60,15 @@ public class CommonClient extends CommonWorker {
 
                 completeHandler.handle(channel);
             }
-            if(toWrites.size()>0){
-                //channel.register(selector,SelectionKey.OP_WRITE);
-                while(toWrites.size()>0){
-                    writeContent(socketChannel,toWrites.poll());
-                }
-            }
+//            if(toWrites.size()>0){
+//                //channel.register(selector,SelectionKey.OP_WRITE);
+//                while(toWrites.size()>0){
+//                    writeContent(socketChannel,toWrites.poll());
+//                }
+//            }
+            //channel.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
             channel.register(selector, SelectionKey.OP_READ);
+           // channel.register(selector, SelectionKey.OP_WRITE );
 
             return;
         }
@@ -75,14 +85,23 @@ public class CommonClient extends CommonWorker {
         if (selectionKey.isReadable()) {
             handleReadable(selectionKey, channel);
         }
+        if(selectionKey.isWritable() && !toWrites.isEmpty()){
+            for(Object o:toWrites){
+                System.out.println(o);
+                writeContent(socketChannel,o);
+            }
+            toWrites.clear();
+            channel.register(selector, SelectionKey.OP_READ);
+        }
     }
 
     public void write(Object o) throws IOException {
-        if(!socketChannel.isConnected()){
-            toWrites.add(o);
-        }else{
-            writeContent(socketChannel,o);
-        }
+        toWrites.add(o);
+//        if(!socketChannel.isConnected()){
+//            toWrites.add(o);
+//        }else{
+//            writeContent(socketChannel,o);
+//        }
 
         //if(this.selectionKey!=null){
 //            writeContent(socketChannel,o);

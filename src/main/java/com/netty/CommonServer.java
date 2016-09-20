@@ -3,10 +3,12 @@ package com.netty;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
+import java.nio.channels.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 
 /**
@@ -20,6 +22,8 @@ public class CommonServer extends CommonWorker{
 
 
     SocketChannels channels=new SocketChannels();
+
+    Map<String,List<Object>> toWriteMap=new ConcurrentHashMap<String, List<Object>>();
 
     public CommonServer(int port,String name) throws IOException {
         super(name);
@@ -37,6 +41,19 @@ public class CommonServer extends CommonWorker{
         System.out.println("server start --- "+port);
     }
 
+    void registerSelectionKey() throws ClosedChannelException {
+        if(!toWriteMap.isEmpty()){
+            for(String name:toWriteMap.keySet()){
+                SocketChannel socketChannel=channels.getChannel(name);
+                if(socketChannel!=null){
+                    socketChannel.register(selector, SelectionKey.OP_WRITE);
+                }else{
+                    System.out.println(name+"不存在 channel");
+                }
+            }
+        }
+    }
+
     @Override
     void handleConnect(SelectionKey selectionKey) throws IOException {
         ServerSocketChannel server = (ServerSocketChannel) selectionKey.channel();
@@ -45,10 +62,10 @@ public class CommonServer extends CommonWorker{
         client.configureBlocking(false);
         client.register(selector, SelectionKey.OP_READ);
         channels.addChannel(client);
+        final String clientName=client.socket().getInetAddress().getHostName();
 
         bossExecs.execute(new Runnable() {
             public void run() {
-                String clientName=client.socket().getInetAddress().getHostName();
                 try {
                     write(clientName,"test server");
                 } catch (IOException e) {
@@ -71,15 +88,23 @@ public class CommonServer extends CommonWorker{
         if (selectionKey.isReadable()) {
             handleReadable(selectionKey, channel);
         }
+        if(selectionKey.isWritable()){
+            String clientName=channel.socket().getInetAddress().getHostName();
+            List<Object> toWrites=toWriteMap.get(clientName);
+            for(Object o:toWrites){
+                writeContent(channel,o);
+            }
+            toWriteMap.remove(clientName);
+        }
     }
 
     public void write(String name,Object o) throws IOException {
-        SocketChannel socketChannel=channels.getChannel(name);
-        if(socketChannel!=null){
-            writeContent(socketChannel,o);
-        }else{
-            System.out.println(name+"不存在 channel");
+        List<Object> toWrites=toWriteMap.get(name);
+        if(toWrites==null){
+            toWrites=new ArrayList<Object>();
+            toWriteMap.put(name,toWrites);
         }
+        toWrites.add(o);
 //        SelectionKey selectionKey=selectionKeys.getSelectionKey(name);
 //        if(selectionKey!=null){
 //            writeContent((SocketChannel)selectionKey.channel(),o);
