@@ -42,7 +42,7 @@ public class CommonClient extends CommonWorker {
 
     void registerSelectionKey() throws ClosedChannelException {
         if(!toWrites.isEmpty()){
-            System.out.println("dd");
+           // System.out.println("dd");
             socketChannel.register(selector, SelectionKey.OP_WRITE);
         }
     }
@@ -87,7 +87,7 @@ public class CommonClient extends CommonWorker {
         }
         if(selectionKey.isWritable() && !toWrites.isEmpty()){
             for(Object o:toWrites){
-                System.out.println(o);
+              //  System.out.println(o);
                 writeContent(socketChannel,o);
             }
             toWrites.clear();

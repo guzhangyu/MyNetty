@@ -67,7 +67,7 @@ public abstract class CommonWorker {
                    bossExecs.execute(new Runnable() {
                        public void run() {
                            try {
-                              System.out.println(String.format("selectionKey isWritable:%s,isReadable:%s",selectionKey.isWritable(),selectionKey.isReadable()));
+                             // System.out.println(String.format("selectionKey isWritable:%s,isReadable:%s",selectionKey.isWritable(),selectionKey.isReadable()));
                                handleKey(selectionKey);
                            } catch (IOException ex) {
                                selectionKey.cancel();

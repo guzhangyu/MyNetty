@@ -23,7 +23,7 @@ public class CommonServer extends CommonWorker{
 
     SocketChannels channels=new SocketChannels();
 
-    Map<String,List<Object>> toWriteMap=new ConcurrentHashMap<String, List<Object>>();
+    ConcurrentHashMap<String,List<Object>> toWriteMap=new ConcurrentHashMap<String, List<Object>>();
 
     public CommonServer(int port,String name) throws IOException {
         super(name);
@@ -89,12 +89,18 @@ public class CommonServer extends CommonWorker{
             handleReadable(selectionKey, channel);
         }
         if(selectionKey.isWritable()){
+           // System.out.println("ddd");
             String clientName=channel.socket().getInetAddress().getHostName();
             List<Object> toWrites=toWriteMap.get(clientName);
-            for(Object o:toWrites){
-                writeContent(channel,o);
+            if(toWrites!=null){
+                toWriteMap.remove(clientName);
+                System.out.println(toWrites.size());
+                for(Object o:toWrites){
+                    writeContent(channel,o);
+                }
+                toWrites.clear();
             }
-            toWriteMap.remove(clientName);
+            channel.register(selector, SelectionKey.OP_READ);
         }
     }
 
@@ -102,7 +108,7 @@ public class CommonServer extends CommonWorker{
         List<Object> toWrites=toWriteMap.get(name);
         if(toWrites==null){
             toWrites=new ArrayList<Object>();
-            toWriteMap.put(name,toWrites);
+            toWriteMap.putIfAbsent(name,toWrites);
         }
         toWrites.add(o);
 //        SelectionKey selectionKey=selectionKeys.getSelectionKey(name);

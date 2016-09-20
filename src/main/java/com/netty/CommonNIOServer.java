@@ -22,8 +22,8 @@ public class CommonNIOServer extends CommonServer {
 
     public static void main(String[] args) throws IOException{
         int port = 8888;
-        CommonNIOServer server=new CommonNIOServer(port,"server1");
-        System.out.println("testtst");
+        CommonNIOServer server=new CommonNIOServer(port,"server");
+        //System.out.println("testtst");
         server.addContentHandler(new HalfContentHandler());
         server.start();
     }
