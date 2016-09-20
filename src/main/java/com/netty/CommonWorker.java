@@ -10,6 +10,7 @@ import java.util.*;
 import java.util.concurrent.*;
 
 /**
+ * server 与 client 的基类
  * Created by guzy on 16/9/18.
  */
 public abstract class CommonWorker {
