@@ -7,6 +7,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 
 /**
@@ -47,7 +48,40 @@ public class CommonClient extends CommonWorker {
         }
     }
 
-    @Override
+
+    public void start()throws IOException {
+        try{
+            while(true){
+                registerSelectionKey();
+                selector.select();
+                final Set<SelectionKey> selectionKeys= selector.selectedKeys();
+
+                for(final SelectionKey selectionKey:selectionKeys){
+                    if (selectionKey.isAcceptable()) {
+                        handleConnect(selectionKey);
+                        continue;
+                    }
+                    bossExecs.execute(new Runnable() {
+                        public void run() {
+                            try {
+                                // System.out.println(String.format("selectionKey isWritable:%s,isReadable:%s",selectionKey.isWritable(),selectionKey.isReadable()));
+                                  handleKey(selectionKey);
+                            } catch (IOException ex) {
+                                selectionKey.cancel();
+
+                            }
+                        }
+                    });
+                }
+                selectionKeys.clear();
+            }
+        }finally {
+            selector.close();
+            channel.close();
+        }
+    }
+
+
     void handleKey(SelectionKey selectionKey) throws IOException {
 
         final SocketChannel channel = (SocketChannel) selectionKey.channel();

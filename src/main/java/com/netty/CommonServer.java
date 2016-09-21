@@ -4,10 +4,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.channels.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 
@@ -76,8 +73,58 @@ public class CommonServer extends CommonWorker{
         // channel.register(selector, SelectionKey.OP_WRITE);
     }
 
-    @Override
-    void handleKey(SelectionKey selectionKey) throws IOException {
+    Map<String,List<Object>> filterAndCreateMap(Set<SelectionKey> selectionKeys){
+        Map<String,List<Object>> resultMap=new HashMap<String, List<Object>>();
+        for(SelectionKey selectionKey:selectionKeys){
+            if(selectionKey.isWritable()){
+                SocketChannel socketChannel=(SocketChannel)selectionKey.channel();
+                String clientName=socketChannel.socket().getInetAddress().getHostName();
+                if(toWriteMap.containsKey(clientName)){
+                    toWriteMap.remove(clientName);
+                    resultMap.put(clientName,toWriteMap.get(clientName));
+                }
+            }
+        }
+        return resultMap;
+    }
+
+
+    public void start()throws IOException {
+        try{
+            while(true){
+                registerSelectionKey();
+                selector.select();
+                final Set<SelectionKey> selectionKeys= selector.selectedKeys();
+                final Map<String,List<Object>> curToWrites=filterAndCreateMap(selectionKeys);
+                if(selectionKeys.size()>0){
+                    for(final SelectionKey selectionKey:selectionKeys){
+                        if (selectionKey.isAcceptable()) {
+                            handleConnect(selectionKey);
+                            continue;
+                        }
+                        bossExecs.execute(new Runnable() {
+                            public void run() {
+                                try {
+                                    //System.out.println(String.format("selectionKey isWritable:%s,isReadable:%s",selectionKey.isWritable(),selectionKey.isReadable()));
+                                    handleKey(selectionKey,curToWrites);
+                                } catch (IOException ex) {
+                                    selectionKey.cancel();
+
+                                }
+                            }
+                        });
+                    }
+                    selectionKeys.clear();
+                }
+            }
+        }finally {
+            selector.close();
+            channel.close();
+        }
+    }
+
+
+    void handleKey(SelectionKey selectionKey,Map<String,List<Object>> map) throws IOException {
         final SocketChannel channel = (SocketChannel) selectionKey.channel();
 
 //        if(selectionKey.isWritable()){
@@ -91,9 +138,9 @@ public class CommonServer extends CommonWorker{
         if(selectionKey.isWritable()){
            // System.out.println("ddd");
             String clientName=channel.socket().getInetAddress().getHostName();
-            List<Object> toWrites=toWriteMap.get(clientName);
+            List<Object> toWrites=map.get(clientName);
             if(toWrites!=null){
-                toWriteMap.remove(clientName);
+                map.remove(clientName);
                 System.out.println(toWrites.size());
                 for(Object o:toWrites){
                     writeContent(channel,o);

@@ -52,37 +52,38 @@ public abstract class CommonWorker {
     public void addContentHandler(ContentHandler contentHandler){
         contentHandlers.add(contentHandler);
     }
-
-    public void start()throws IOException {
-       try{
-           while(true){
-               registerSelectionKey();
-               selector.select();
-               final Set<SelectionKey> selectionKeys= selector.selectedKeys();
-               for(final SelectionKey selectionKey:selectionKeys){
-                   if (selectionKey.isAcceptable()) {
-                        handleConnect(selectionKey);
-                       continue;
-                   }
-                   bossExecs.execute(new Runnable() {
-                       public void run() {
-                           try {
-                             // System.out.println(String.format("selectionKey isWritable:%s,isReadable:%s",selectionKey.isWritable(),selectionKey.isReadable()));
-                               handleKey(selectionKey);
-                           } catch (IOException ex) {
-                               selectionKey.cancel();
-
-                           }
-                       }
-                   });
-               }
-               selectionKeys.clear();
-           }
-       }finally {
-           selector.close();
-           channel.close();
-       }
-    }
+//
+//    public void start()throws IOException {
+//       try{
+//           while(true){
+//               registerSelectionKey();
+//               selector.select();
+//               final Set<SelectionKey> selectionKeys= selector.selectedKeys();
+//
+//               for(final SelectionKey selectionKey:selectionKeys){
+//                   if (selectionKey.isAcceptable()) {
+//                        handleConnect(selectionKey);
+//                       continue;
+//                   }
+//                   bossExecs.execute(new Runnable() {
+//                       public void run() {
+//                           try {
+//                             // System.out.println(String.format("selectionKey isWritable:%s,isReadable:%s",selectionKey.isWritable(),selectionKey.isReadable()));
+//                             //  handleKey(selectionKey);
+//                           } catch (IOException ex) {
+//                               selectionKey.cancel();
+//
+//                           }
+//                       }
+//                   });
+//               }
+//               selectionKeys.clear();
+//           }
+//       }finally {
+//           selector.close();
+//           channel.close();
+//       }
+//    }
 
     /**
      * 连接事件的处理
@@ -96,7 +97,7 @@ public abstract class CommonWorker {
      * @param selectionKey
      * @throws IOException
      */
-    abstract void handleKey(final SelectionKey selectionKey) throws IOException;
+    //abstract void handleKey(final SelectionKey selectionKey) throws IOException;
 
     /**
      * 读事件的处理
