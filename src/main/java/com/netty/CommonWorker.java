@@ -195,7 +195,9 @@ public abstract class CommonWorker {
 
     void writeContent(SocketChannel socketChannel,ByteBuffer sendBuffer) throws IOException {
         sendBuffer.flip();
-        socketChannel.write(sendBuffer);
+        while(sendBuffer.hasRemaining()){
+            socketChannel.write(sendBuffer);
+        }
     }
 
 }
