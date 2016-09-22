@@ -1,4 +1,4 @@
-package com.netty;
+package com.netty.assist;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;

@@ -1,5 +1,9 @@
 package com.netty;
 
+import com.netty.assist.SimpleThreadExecutors;
+import com.netty.assist.SocketChannels;
+import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
@@ -16,6 +20,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class CommonServer extends CommonWorker{
 
+    Logger logger=Logger.getLogger(CommonServer.class);
+
    // private SelectionKeys selectionKeys=new SelectionKeys();
 
     ServerSocketChannel serverSocketChannel;
@@ -25,7 +31,11 @@ public class CommonServer extends CommonWorker{
     ConcurrentHashMap<String,List<Object>> toWriteMap=new ConcurrentHashMap<String, List<Object>>();
 
     public CommonServer(int port,String name) throws IOException {
+
         super(name);
+
+        logger.debug(String.format("serverName:%s",name));
+
         //bossExecs= Executors.newFixedThreadPool(10);
         bossExecs=new SimpleThreadExecutors();
 
