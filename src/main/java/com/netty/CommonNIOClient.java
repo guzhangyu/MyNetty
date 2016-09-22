@@ -4,9 +4,6 @@ import com.netty.hander.CompleteHandler;
 import com.netty.handlers.HalfContentHandler;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 
 /**
@@ -25,23 +22,11 @@ public class CommonNIOClient extends CommonClient {
         CompleteHandler completeHandler=new CompleteHandler() {
             public void handle(SocketChannel socketChannel) throws IOException {
                 //首次写数据
-                client.writeContent(socketChannel,"Hello,Server");
+                client.write("Hello Server");
             }
         };
         client.setCompleteHandler(completeHandler);
-//        client.contentHandlers.add(new ContentHandler() {
-//            public Object write(AbstractSelectableChannel channel, Object o,List<Object> outs) {
-//                Object result=((String)o).getBytes();
-//                outs.add(result);
-//                return result;
-//            }
-//
-//            public Object read(AbstractSelectableChannel channel, Object o,List<Object> outs) {
-//                Object result= new String((byte[])o);
-//                outs.add(result);
-//                return result;
-//            }
-//        });
+
         client.addContentHandler(new HalfContentHandler());
         new Thread(new Runnable() {
             public void run() {

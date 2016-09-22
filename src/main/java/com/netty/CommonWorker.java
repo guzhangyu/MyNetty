@@ -17,16 +17,26 @@ public abstract class CommonWorker {
 
     protected Selector selector;
 
+    /**
+     * 连接完成的处理器
+     */
     CompleteHandler completeHandler;
 
     String name;
 
+    //worker 线程，用来处理数据内容
     private ExecutorService executorService;
 
     Executor bossExecs;
 
+    /**
+     * 内容处理链
+     */
     private List<ContentHandler> contentHandlers=new ArrayList<ContentHandler>();
 
+    /**
+     * 主 channel
+     */
     SelectableChannel channel;
 
     public CommonWorker(String name){
@@ -34,70 +44,15 @@ public abstract class CommonWorker {
         executorService= Executors.newFixedThreadPool(10);
     }
 
-    public static void main(String[] args) throws IOException{
-        System.out.println(1<<2);
-    }
-
-    public CompleteHandler getCompleteHandler() {
-        return completeHandler;
-    }
-
     public CommonWorker setCompleteHandler(CompleteHandler completeHandler) {
         this.completeHandler = completeHandler;
         return this;
     }
 
-    abstract void registerSelectionKey() throws ClosedChannelException;
-
     public void addContentHandler(ContentHandler contentHandler){
         contentHandlers.add(contentHandler);
     }
-//
-//    public void start()throws IOException {
-//       try{
-//           while(true){
-//               registerSelectionKey();
-//               selector.select();
-//               final Set<SelectionKey> selectionKeys= selector.selectedKeys();
-//
-//               for(final SelectionKey selectionKey:selectionKeys){
-//                   if (selectionKey.isAcceptable()) {
-//                        handleConnect(selectionKey);
-//                       continue;
-//                   }
-//                   bossExecs.execute(new Runnable() {
-//                       public void run() {
-//                           try {
-//                             // System.out.println(String.format("selectionKey isWritable:%s,isReadable:%s",selectionKey.isWritable(),selectionKey.isReadable()));
-//                             //  handleKey(selectionKey);
-//                           } catch (IOException ex) {
-//                               selectionKey.cancel();
-//
-//                           }
-//                       }
-//                   });
-//               }
-//               selectionKeys.clear();
-//           }
-//       }finally {
-//           selector.close();
-//           channel.close();
-//       }
-//    }
 
-    /**
-     * 连接事件的处理
-     * @param selectionKey
-     * @throws IOException
-     */
-    abstract void handleConnect(SelectionKey selectionKey) throws IOException;
-
-    /**
-     * 对select到的key进行处理
-     * @param selectionKey
-     * @throws IOException
-     */
-    //abstract void handleKey(final SelectionKey selectionKey) throws IOException;
 
     /**
      * 读事件的处理
@@ -106,12 +61,12 @@ public abstract class CommonWorker {
      * @throws IOException
      */
     void handleReadable(SelectionKey selectionKey, final SocketChannel channel) throws IOException {
-        final ByteBuffer receiveBuffer = ByteBuffer.allocate(1024);
+        //TODO:扩容，并发
+        final ByteBuffer receiveBuffer = selectionKey.attachment()==null?ByteBuffer.allocate(1024):(ByteBuffer)selectionKey.attachment();
 
         //读取数据
         int count = channel.read(receiveBuffer);
         if (count > 0) {
-           // System.out.println("count:"+count);
             executorService.execute(new Runnable() {
                 public void run() {
                     List<Object> results = new ArrayList<Object>();
@@ -131,7 +86,7 @@ public abstract class CommonWorker {
                     }
                 }
             });
-            //  channel.register(selector, SelectionKey.OP_WRITE);
+            //  channel.register(selector, SelectionKey.OP_WRITE); //TODO:可能要改成在这里注册写事件
         } else if (count < 0) {
             //对端链路关闭
             selectionKey.cancel();
@@ -141,13 +96,44 @@ public abstract class CommonWorker {
         }
     }
 
+
+
+    /**
+     * 启动方法
+     * @throws IOException
+     */
+    public void start()throws IOException {
+        try{
+            while(true){
+                registerSelectionKey();//注册写兴趣
+
+                int count=selector.select();
+                if(count>0){
+                    final Set<SelectionKey> selectionKeys= selector.selectedKeys();
+
+                    for(final SelectionKey selectionKey:selectionKeys){
+                        handleKey(selectionKey);
+                    }
+                    selectionKeys.clear();
+                }
+            }
+        }finally {
+            selector.close();
+            channel.close();
+        }
+    }
+
+    abstract void handleKey(SelectionKey selectionKey);
+
+    abstract void registerSelectionKey() throws ClosedChannelException;
+
     /**
      * 写内容
      * @param channel
      * @param content
      * @throws IOException
      */
-    void writeContent(final SocketChannel channel,final Object content) {
+    void writeContent(final SelectionKey selectionKey,final SocketChannel channel,final Object content) {
         executorService.submit(new Callable<List<Object>>() {
             List<Object> results = new ArrayList<Object>();
 
@@ -157,18 +143,22 @@ public abstract class CommonWorker {
                 for (ContentHandler handler : contentHandlers) {
                     List<Object> outs = new ArrayList<Object>();
                     for (Object result : results) {
-                        handler.write(channel, result, outs);
+                        handler.write((ByteBuffer)selectionKey.attachment(),channel, result, outs);
                     }
                     results = outs;
                 }
                 bossExecs.execute(new Runnable() {
                     public void run() {
-                        for(Object result:results){
-                            try {
-                                writeContent(channel,(ByteBuffer)result);
-                            } catch (IOException e) {
-                                e.printStackTrace();
+                        try {
+                            if(selectionKey.attachment()!=null){
+                                writeContent(channel,(ByteBuffer)selectionKey.attachment());
+                            }else{
+                                for(Object result:results){
+                                    writeContent(channel,(ByteBuffer)result);
+                                }
                             }
+                        } catch (IOException e) {
+                            e.printStackTrace();
                         }
                     }
                 });
@@ -176,22 +166,7 @@ public abstract class CommonWorker {
             }
         });
 
-//                    ByteBuffer sendBuffer=ByteBuffer.allocate(BLOCK);
-//                    sendBuffer.put(content.getBytes());
-//                    sendBuffer.flip();
-//                    //将缓冲区各标志位复位，因为向里面put了数据，标志被改变，想从中读取数据发向服务端，就要复位
-//                    sendBuffer.flip();
-//                    channel.write(sendBuffer);
-
-        //channel.register(selector, SelectionKey.OP_READ);
     }
-
-//    void writeContent(SocketChannel socketChannel,byte[]bytes) throws IOException {
-//        ByteBuffer sendBuffer=ByteBuffer.allocate(bytes.length);
-//        sendBuffer.put(bytes);
-//        sendBuffer.flip();
-//        socketChannel.write(sendBuffer);
-//    }
 
     void writeContent(SocketChannel socketChannel,ByteBuffer sendBuffer) throws IOException {
         sendBuffer.flip();

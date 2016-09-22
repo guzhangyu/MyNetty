@@ -3,6 +3,7 @@ package com.netty.handlers;
 import com.netty.hander.ContentHandler;
 
 import java.nio.ByteBuffer;
+import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.AbstractSelectableChannel;
 import java.util.List;
 
@@ -13,16 +14,16 @@ import java.util.List;
 public class HalfContentHandler implements ContentHandler {
 
 
-    public Object write(AbstractSelectableChannel channel, Object o, List<Object> outs) {
+    public Object write(ByteBuffer attach,SocketChannel channel, Object o, List<Object> outs) {
         byte[] result=((String)o).getBytes();
-        ByteBuffer buf=ByteBuffer.allocate(result.length+4);
+        ByteBuffer buf=attach==null?ByteBuffer.allocate(result.length+4):attach;
         buf.putInt(result.length);
         buf.put(result);
         outs.add(buf);
         return result;
     }
 
-    public Object read(AbstractSelectableChannel channel, Object o, List<Object> outs) {
+    public Object read(SocketChannel channel, Object o, List<Object> outs) {
         ByteBuffer byteBuffer=(ByteBuffer)o;
         int len=0;
         int curLen=0;

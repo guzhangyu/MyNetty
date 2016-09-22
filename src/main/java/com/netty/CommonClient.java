@@ -15,114 +15,82 @@ import java.util.concurrent.ArrayBlockingQueue;
  * Created by guzy on 16/9/20.
  */
 public class CommonClient extends CommonWorker {
-   // private SelectionKey selectionKey;
 
+    //客户端channel
     SocketChannel socketChannel;
 
+    //用于写的内容列表
     Queue<Object> toWrites=new ArrayBlockingQueue<Object>(100);
 
     public CommonClient(String host, int port,String name) throws IOException {
         super(name);
-        bossExecs= new SimpleThreadExecutors();
+        bossExecs= new SimpleThreadExecutors();//初始化boss线程池
 
         socketChannel=SocketChannel.open();
         socketChannel.configureBlocking(false);
 
         selector= Selector.open();
         //  channel.socket().setTcpNoDelay(true);
-        socketChannel.register(selector, SelectionKey.OP_CONNECT);
-        socketChannel.connect(new InetSocketAddress(host, port));
+        socketChannel.register(selector, SelectionKey.OP_CONNECT);//注册连接服务器兴趣
+        socketChannel.connect(new InetSocketAddress(host, port));//要连接的服务器
 
         this.channel=socketChannel;
     }
 
-    @Override
-    void handleConnect(SelectionKey selectionKey) throws IOException {
-
-    }
-
+    /**
+     * 根据要写的数据情况，来注册写兴趣
+     * @throws ClosedChannelException
+     */
     void registerSelectionKey() throws ClosedChannelException {
         if(!toWrites.isEmpty()){
-           // System.out.println("dd");
             socketChannel.register(selector, SelectionKey.OP_WRITE);
         }
     }
 
 
-    public void start()throws IOException {
-        try{
-            while(true){
-                registerSelectionKey();
-                selector.select();
-                final Set<SelectionKey> selectionKeys= selector.selectedKeys();
-
-                for(final SelectionKey selectionKey:selectionKeys){
-                    if (selectionKey.isAcceptable()) {
-                        handleConnect(selectionKey);
-                        continue;
-                    }
-                    bossExecs.execute(new Runnable() {
-                        public void run() {
-                            try {
-                                // System.out.println(String.format("selectionKey isWritable:%s,isReadable:%s",selectionKey.isWritable(),selectionKey.isReadable()));
-                                  handleKey(selectionKey);
-                            } catch (IOException ex) {
-                                selectionKey.cancel();
-
-                            }
-                        }
-                    });
+    /**
+     * 对selectionKey的处理
+     * @param selectionKey
+     */
+    void handleKey(final SelectionKey selectionKey){
+        bossExecs.execute(new Runnable() {
+            public void run() {
+                try {
+                    // System.out.println(String.format("selectionKey isWritable:%s,isReadable:%s",selectionKey.isWritable(),selectionKey.isReadable()));
+                    handleKeyInner(selectionKey);
+                } catch (IOException ex) {
+                    selectionKey.cancel();
                 }
-                selectionKeys.clear();
             }
-        }finally {
-            selector.close();
-            channel.close();
-        }
+        });
     }
 
-
-    void handleKey(SelectionKey selectionKey) throws IOException {
+    /**
+     * selectionKey线程内处理方法
+     * @param selectionKey
+     * @throws IOException
+     */
+    void handleKeyInner(SelectionKey selectionKey) throws IOException {
 
         final SocketChannel channel = (SocketChannel) selectionKey.channel();
 
         if (selectionKey.isConnectable()) {
-            System.out.println("channel connect");
+            System.out.println("enter isConnectable ");
             if (channel.isConnectionPending()) {
                 channel.finishConnect();
                 System.out.println(name + "完成连接!");
-
                 completeHandler.handle(channel);
             }
-//            if(toWrites.size()>0){
-//                //channel.register(selector,SelectionKey.OP_WRITE);
-//                while(toWrites.size()>0){
-//                    writeContent(socketChannel,toWrites.poll());
-//                }
-//            }
-            //channel.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
             channel.register(selector, SelectionKey.OP_READ);
-           // channel.register(selector, SelectionKey.OP_WRITE );
-
             return;
         }
-
-//         if(selectionKey.isWritable()){
-//            this.selectionKey=selectionKey;
-//
-//            while(toWrites.size()>0){
-//                writeContent(socketChannel,toWrites.poll());
-//            }
-//            System.out.println("init ");
-//        }
 
         if (selectionKey.isReadable()) {
             handleReadable(selectionKey, channel);
         }
         if(selectionKey.isWritable() && !toWrites.isEmpty()){
             for(Object o:toWrites){
-              //  System.out.println(o);
-                writeContent(socketChannel,o);
+                writeContent(selectionKey,socketChannel,o);
             }
             toWrites.clear();
             channel.register(selector, SelectionKey.OP_READ);
@@ -131,18 +99,5 @@ public class CommonClient extends CommonWorker {
 
     public void write(Object o) throws IOException {
         toWrites.add(o);
-//        if(!socketChannel.isConnected()){
-//            toWrites.add(o);
-//        }else{
-//            writeContent(socketChannel,o);
-//        }
-
-        //if(this.selectionKey!=null){
-//            writeContent(socketChannel,o);
-//        }else{
-//            toWrites.add(o);
-//            socketChannel.register(selector,SelectionKey.OP_WRITE);
-//            System.out.println("selectionKey empty ");
-//        }
     }
 }
