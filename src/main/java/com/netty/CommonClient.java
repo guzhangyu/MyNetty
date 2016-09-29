@@ -80,7 +80,10 @@ public class CommonClient extends CommonWorker {
             if (channel.isConnectionPending()) {
                 channel.finishConnect();
                 System.out.println(name + "完成连接!");
-                completeHandler.handle(channel);
+
+                if(completeHandler!=null){
+                    completeHandler.handle(channel);
+                }
             }
             channel.register(selector, SelectionKey.OP_READ);
             return;

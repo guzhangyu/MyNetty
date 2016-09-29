@@ -49,8 +49,9 @@ public abstract class CommonWorker {
         return this;
     }
 
-    public void addContentHandler(ContentHandler contentHandler){
+    public CommonWorker addContentHandler(ContentHandler contentHandler){
         contentHandlers.add(contentHandler);
+        return this;
     }
 
 
