@@ -1,6 +1,5 @@
 package com.netty;
 
-import com.netty.assist.SimpleThreadExecutors;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -28,7 +27,6 @@ public class CommonClient extends CommonWorker {
 
     public CommonClient(String host, int port,String name) throws IOException {
         super(name);
-        bossExecs= new SimpleThreadExecutors();//初始化boss线程池
 
         socketChannel=SocketChannel.open();
         socketChannel.configureBlocking(false);
@@ -56,17 +54,8 @@ public class CommonClient extends CommonWorker {
      * 对selectionKey的处理
      * @param selectionKey
      */
-    void handleKey(final SelectionKey selectionKey){
-        bossExecs.execute(new Runnable() {
-            public void run() {
-                try {
-                    // System.out.println(String.format("selectionKey isWritable:%s,isReadable:%s",selectionKey.isWritable(),selectionKey.isReadable()));
-                    handleKeyInner(selectionKey);
-                } catch (IOException ex) {
-                    selectionKey.cancel();
-                }
-            }
-        });
+    void handleKey(final SelectionKey selectionKey) throws IOException {
+        handleKeyInner(selectionKey);
     }
 
     /**

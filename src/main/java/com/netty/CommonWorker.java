@@ -7,8 +7,13 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * server 与 client 的基类
@@ -20,6 +25,8 @@ public abstract class CommonWorker {
 
     protected Selector selector;
 
+    protected volatile Boolean running=true;
+
     /**
      * 连接完成的处理器
      */
@@ -29,8 +36,6 @@ public abstract class CommonWorker {
 
     //worker 线程，用来处理数据内容
     private ExecutorService executorService;
-
-    Executor bossExecs;
 
     /**
      * 内容处理链
@@ -108,7 +113,7 @@ public abstract class CommonWorker {
      */
     public void start()throws IOException {
         try{
-            while(true){
+            while(running){
                 registerSelectionKey();//注册写兴趣
 
                 int count=selector.select();
@@ -122,12 +127,16 @@ public abstract class CommonWorker {
                 }
             }
         }finally {
-            selector.close();
-            channel.close();
+            shutDown();
         }
     }
 
-    abstract void handleKey(SelectionKey selectionKey);
+    void shutDown() throws IOException {
+        selector.close();
+        channel.close();
+    }
+
+    abstract void handleKey(SelectionKey selectionKey) throws IOException;
 
     abstract void registerSelectionKey() throws ClosedChannelException;
 
@@ -141,7 +150,7 @@ public abstract class CommonWorker {
         executorService.submit(new Callable<List<Object>>() {
             List<Object> results = new ArrayList<Object>();
 
-            public List<Object> call() {
+            public List<Object> call() throws IOException {
                 results.add(content);
                 logger.debug(name + "发送数据 --:" + content);
                 for (ContentHandler handler : contentHandlers) {
@@ -151,21 +160,13 @@ public abstract class CommonWorker {
                     }
                     results = outs;
                 }
-                bossExecs.execute(new Runnable() {
-                    public void run() {
-                        try {
-                            if(selectionKey.attachment()!=null){
-                                writeContent(channel,(ByteBuffer)selectionKey.attachment());
-                            }else{
-                                for(Object result:results){
-                                    writeContent(channel,(ByteBuffer)result);
-                                }
-                            }
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
+                if(selectionKey.attachment()!=null){
+                    writeContent(channel,(ByteBuffer)selectionKey.attachment());
+                }else{
+                    for(Object result:results){
+                        writeContent(channel,(ByteBuffer)result);
                     }
-                });
+                }
                 return results;
             }
         });

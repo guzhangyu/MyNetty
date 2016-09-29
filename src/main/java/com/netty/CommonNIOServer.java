@@ -22,8 +22,31 @@ public class CommonNIOServer extends CommonServer {
 
     public static void main(String[] args) throws IOException{
         int port = 8888;
-        new CommonNIOServer(port,"server")
+        final CommonNIOServer commonNIOServer=new CommonNIOServer(port,"server");
+
+        Runtime.getRuntime().addShutdownHook(new Thread(){
+            public void run(){
+                try {
+                    //System.out.println("test code");
+                    commonNIOServer.shutDownReally();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+
+        commonNIOServer
                 .addContentHandler(new HalfContentHandler())
                 .start();
+
+
+
+//        try {
+//            Thread.sleep(1000l);
+//            System.exit(0);
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
     }
 }

@@ -1,6 +1,5 @@
 package com.netty;
 
-import com.netty.assist.SimpleThreadExecutors;
 import com.netty.assist.SocketChannels;
 import org.apache.log4j.Logger;
 
@@ -36,8 +35,6 @@ public class CommonServer extends CommonWorker{
 
         logger.debug(String.format("serverName:%s",name));
 
-        //bossExecs= Executors.newFixedThreadPool(10);
-        bossExecs=new SimpleThreadExecutors();
 
         serverSocketChannel= ServerSocketChannel.open();
         channel=serverSocketChannel;
@@ -58,7 +55,7 @@ public class CommonServer extends CommonWorker{
                 if(socketChannel!=null){
                     socketChannel.register(selector, SelectionKey.OP_WRITE);
                 }else{
-                    logger.debug(name+"不存在 channel");
+                    logger.debug(name + "不存在 channel");
                 }
             }
         }
@@ -75,15 +72,7 @@ public class CommonServer extends CommonWorker{
         channels.addChannel(client);
         final String clientName=client.socket().getInetAddress().getHostName();
 
-        bossExecs.execute(new Runnable() {
-            public void run() {
-                try {
-                    write(clientName,"test server");
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
+        write(clientName, "test server");
         // channel.register(selector, SelectionKey.OP_WRITE);
     }
 
@@ -105,7 +94,12 @@ public class CommonServer extends CommonWorker{
 
 
     @Override
-    void handleKey(final SelectionKey selectionKey) {
+    void handleKey(final SelectionKey selectionKey) throws IOException {
+        handleKey(selectionKey, toWriteMap);
+    }
+
+
+    void handleKey(SelectionKey selectionKey,Map<String,List<Object>> map) throws IOException {
         if (selectionKey.isAcceptable()) {
             try {
                 handleConnect(selectionKey);
@@ -114,20 +108,7 @@ public class CommonServer extends CommonWorker{
             }
             return;
         }
-        bossExecs.execute(new Runnable() {
-            public void run() {
-                try {
-                    //System.out.println(String.format("selectionKey isWritable:%s,isReadable:%s",selectionKey.isWritable(),selectionKey.isReadable()));
-                    handleKey(selectionKey,toWriteMap);
-                } catch (IOException ex) {
-                    selectionKey.cancel();
-                }
-            }
-        });
-    }
 
-
-    void handleKey(SelectionKey selectionKey,Map<String,List<Object>> map) throws IOException {
         final SocketChannel channel = (SocketChannel) selectionKey.channel();
 
         if (selectionKey.isReadable()) {
@@ -145,6 +126,19 @@ public class CommonServer extends CommonWorker{
             }
             channel.register(selector, SelectionKey.OP_READ);
         }
+    }
+
+    void shutDown() throws IOException{
+        start();
+    }
+
+
+    public void shutDownReally() throws IOException {
+        //System.out.println("shut down");
+        logger.debug("shut down really");
+        running=false;
+        selector.close();
+        channel.close();
     }
 
     public void write(String name,Object o) throws IOException {
