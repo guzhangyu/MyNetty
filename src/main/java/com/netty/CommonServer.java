@@ -48,7 +48,7 @@ public class CommonServer extends CommonWorker{
 
         selector= Selector.open();
         serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
-        System.out.println("server start --- "+port);
+        logger.debug("server start --- " + port);
     }
 
     void registerSelectionKey() throws ClosedChannelException {
@@ -58,7 +58,7 @@ public class CommonServer extends CommonWorker{
                 if(socketChannel!=null){
                     socketChannel.register(selector, SelectionKey.OP_WRITE);
                 }else{
-                    System.out.println(name+"不存在 channel");
+                    logger.debug(name+"不存在 channel");
                 }
             }
         }

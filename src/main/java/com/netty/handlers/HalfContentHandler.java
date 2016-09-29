@@ -1,6 +1,7 @@
 package com.netty.handlers;
 
 import com.netty.hander.ContentHandler;
+import org.apache.log4j.Logger;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
@@ -12,6 +13,8 @@ import java.util.List;
  * Created by guzy on 16/9/18.
  */
 public class HalfContentHandler implements ContentHandler {
+
+    Logger logger=Logger.getLogger(HalfContentHandler.class);
 
 
     public Object write(ByteBuffer attach,SocketChannel channel, Object o, List<Object> outs) {
@@ -31,7 +34,7 @@ public class HalfContentHandler implements ContentHandler {
             curLen+=4;
            // byteBuffer.flip();
             len=byteBuffer.getInt();
-            System.out.println(len);
+            logger.debug(len);
             byte[] arr=new byte[len];
             byteBuffer.position(curLen);
             byteBuffer.get(arr,0,len);

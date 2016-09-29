@@ -1,6 +1,7 @@
 package com.netty;
 
 import com.netty.assist.SimpleThreadExecutors;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -16,6 +17,8 @@ import java.util.concurrent.ArrayBlockingQueue;
  * Created by guzy on 16/9/20.
  */
 public class CommonClient extends CommonWorker {
+
+    Logger logger=Logger.getLogger(CommonClient.class);
 
     //客户端channel
     SocketChannel socketChannel;
@@ -76,10 +79,10 @@ public class CommonClient extends CommonWorker {
         final SocketChannel channel = (SocketChannel) selectionKey.channel();
 
         if (selectionKey.isConnectable()) {
-            System.out.println("enter isConnectable ");
+           logger.debug("enter isConnectable ");
             if (channel.isConnectionPending()) {
                 channel.finishConnect();
-                System.out.println(name + "完成连接!");
+                logger.debug(name + "完成连接!");
 
                 if(completeHandler!=null){
                     completeHandler.handle(channel);

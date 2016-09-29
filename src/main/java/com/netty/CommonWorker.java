@@ -2,6 +2,7 @@ package com.netty;
 
 import com.netty.hander.CompleteHandler;
 import com.netty.hander.ContentHandler;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -14,6 +15,8 @@ import java.util.concurrent.*;
  * Created by guzy on 16/9/18.
  */
 public abstract class CommonWorker {
+
+    Logger logger=Logger.getLogger(CommonWorker.class);
 
     protected Selector selector;
 
@@ -83,7 +86,7 @@ public abstract class CommonWorker {
                         results = outs;
                     }
                     for (Object curResult : results) {
-                        System.out.println(name + "接收数据--:" + new String((byte[]) curResult));
+                        logger.debug(name + "接收数据--:" + new String((byte[]) curResult));
                     }
                 }
             });
@@ -140,7 +143,7 @@ public abstract class CommonWorker {
 
             public List<Object> call() {
                 results.add(content);
-                System.out.println(name + "发送数据 --:" + content);
+                logger.debug(name + "发送数据 --:" + content);
                 for (ContentHandler handler : contentHandlers) {
                     List<Object> outs = new ArrayList<Object>();
                     for (Object result : results) {
