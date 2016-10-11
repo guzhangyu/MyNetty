@@ -34,7 +34,7 @@ public class HalfContentHandler implements ContentHandler {
             curLen+=4;
            // byteBuffer.flip();
             len=byteBuffer.getInt();
-            logger.debug(len);
+            //logger.debug(len);
             byte[] arr=new byte[len];
             byteBuffer.position(curLen);
             byteBuffer.get(arr,0,len);

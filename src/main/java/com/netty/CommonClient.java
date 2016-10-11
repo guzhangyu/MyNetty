@@ -68,7 +68,7 @@ public class CommonClient extends CommonWorker {
         final SocketChannel channel = (SocketChannel) selectionKey.channel();
 
         if (selectionKey.isConnectable()) {
-           logger.debug("enter isConnectable ");
+          // logger.debug("enter isConnectable ");
             if (channel.isConnectionPending()) {
                 channel.finishConnect();
                 logger.debug(name + "完成连接!");
