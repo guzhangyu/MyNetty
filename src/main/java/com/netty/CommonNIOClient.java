@@ -32,62 +32,38 @@ public class CommonNIOClient extends CommonClient {
 
         new Thread(new Runnable() {
             public void run() {
-              //  try{
-                    client.start();//启动进程
-//                 } catch (IOException e) {
-//                    e.printStackTrace();
-//                }
+              client.start();//启动进程
             }
         }).start();
 
-        try {
-            Thread.sleep(2000l);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+//        try {
+//            Thread.sleep(2000l);
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
 
         new Thread(new Runnable() {
             public void run() {
                 new ReadInput().read(new HandleStr() {
                     public void handleStr(String str) throws Exception {
                         client.write(str);
-                        System.out.println(str);
-                        //  client.selector.notifyAll();
-                        //client.selector.wakeup();
+                        //System.out.println(str);
                     }
                 });
             }
         }).start();
 
-         new Thread(new Runnable() {
-                public void run() {
-                    try {
-                        System.out.println("begin write");
-                        client.write("te");
-                        client.write("ted");
-                        client.write("testt");
-
-//                        byte[] bytes=new byte[1024];
-//                        while(System.in.read(bytes)>0){
-//                            client.write(new String(bytes));
-//                            System.out.println(new String(bytes));
-//                            System.in.close();
-//                            return;
-//                        }
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }).start();
-
-//            new Thread(new Runnable() {
+//         new Thread(new Runnable() {
 //                public void run() {
+//                    try {
+//                        System.out.println("begin write");
 //                        client.write("te");
 //                        client.write("ted");
 //                        client.write("testt");
-
-
-
+//
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
 //                }
 //            }).start();
 

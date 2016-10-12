@@ -7,14 +7,14 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
+ * 服务端的selectionKeys列表，与客户端socket一一对应
  * Created by guzy on 16/9/20.
  */
 public class SelectionKeys {
 
-    public Map<String,SelectionKey> selectionKeyMap=new HashMap<String, SelectionKey>();
+    private Map<String,SelectionKey> selectionKeyMap=new HashMap<String, SelectionKey>();
 
     public void addSelectionKey(String name,SelectionKey selectionKey){
-        //SelectableChannel channel=selectionKey.channel();
         selectionKeyMap.put(name,selectionKey);
     }
 
@@ -22,9 +22,21 @@ public class SelectionKeys {
         return selectionKeyMap.containsKey(key);
     }
 
+    public Boolean containsValue(SelectionKey value){
+        return selectionKeyMap.containsValue(value);
+    }
+
     public void addSelectionKey(SelectionKey selectionKey){
         SocketChannel channel=(SocketChannel)selectionKey.channel();
         selectionKeyMap.put(channel.socket().getInetAddress().getHostName(),selectionKey);
+    }
+
+    public Map<String,SelectionKey> getMap(){
+        return selectionKeyMap;
+    }
+
+    public void remove(String key){
+        selectionKeyMap.remove(key);
     }
 
     public SelectionKey getSelectionKey(String name){

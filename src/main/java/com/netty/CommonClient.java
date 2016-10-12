@@ -4,9 +4,6 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.SocketOption;
-import java.net.SocketOptions;
-import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
@@ -33,8 +30,6 @@ public class CommonClient extends CommonWorker {
 
         socketChannel=SocketChannel.open();
         socketChannel.configureBlocking(false);
-        //socketChannel.setOption(SocketOptions.)
-
 
         selector= Selector.open();
       //   socketChannel.socket().setTcpNoDelay(true);
@@ -44,18 +39,7 @@ public class CommonClient extends CommonWorker {
         this.channel=socketChannel;
     }
 
-    /**
-     * 根据要写的数据情况，来注册写兴趣
-     * @throws ClosedChannelException
-     */
-    void registerSelectionKey() throws ClosedChannelException {
-        if(!toWrites.isEmpty()){
-            socketChannel.register(selector,SelectionKey.OP_READ | SelectionKey.OP_WRITE);//
-        }
-    }
-
     void handleFirstConnect(SelectionKey selectionKey,List<Object> results){
-
     }
 
     /**
@@ -76,7 +60,6 @@ public class CommonClient extends CommonWorker {
         final SocketChannel channel = (SocketChannel) selectionKey.channel();
 
         if (selectionKey.isConnectable()) {
-          // logger.debug("enter isConnectable ");
             if (channel.isConnectionPending()) {
                 channel.finishConnect();
                 logger.debug(name + "完成连接!");
@@ -106,6 +89,22 @@ public class CommonClient extends CommonWorker {
         handleNotWritten();
     }
 
+    /**
+     * 处理关闭事件
+     * @param selectionKey
+     */
+     void handleClose(SelectionKey selectionKey){
+        logger.debug("server closed!");
+         try {
+             shutDown();
+         } catch (IOException e) {
+             e.printStackTrace();
+         }
+     }
+
+    /**
+     * 将所有需要写的数据一次性写掉
+     */
     synchronized void handleNotWritten() {
         if(socketChannel.isConnected()){
             for(Object toWrite:toWrites){

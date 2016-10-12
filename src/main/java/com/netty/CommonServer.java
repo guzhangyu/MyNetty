@@ -1,15 +1,18 @@
 package com.netty;
 
+import com.netty.assist.CommonUtils;
 import com.netty.assist.SelectionKeys;
 import com.netty.assist.SocketChannelArr;
-import com.netty.assist.SocketChannels;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.ByteBuffer;
-import java.nio.channels.*;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -28,7 +31,7 @@ public class CommonServer extends CommonWorker{
 
     ServerSocketChannel serverSocketChannel;
 
-    //SocketChannels channels=new SocketChannels();
+    ConcurrentHashMap<String,Queue<Object>> hostNickMap=new ConcurrentHashMap<String, Queue<Object>>();
 
     ConcurrentHashMap<String,Queue<Object>> toWriteMap=new ConcurrentHashMap<String, Queue<Object>>();
 
@@ -53,21 +56,8 @@ public class CommonServer extends CommonWorker{
         logger.debug("server start --- " + port);
     }
 
-    void registerSelectionKey() throws ClosedChannelException {
-//        if(!toWriteMap.isEmpty()){
-//            for(String name:toWriteMap.keySet()){
-//                SocketChannel socketChannel=channels.getChannel(name);
-//                if(socketChannel!=null){
-//                    socketChannel.register(selector, SelectionKey.OP_WRITE);
-//                }else{
-//                    logger.debug(name + "不存在 channel");
-//                }
-//            }
-//        }
-    }
-
     void handleFirstConnect(SelectionKey selectionKey,List<Object> results){
-        if(selectionKeys.selectionKeyMap.containsValue(selectionKey)){
+        if(selectionKeys.containsValue(selectionKey)){
             logger.debug("already has selectionKey");
             return;
         }
@@ -75,12 +65,57 @@ public class CommonServer extends CommonWorker{
             String res=new String((byte[])result);
             if(res.startsWith("MyName:")){
                 String name=res.substring(7);
+                addObjToMap(CommonUtils.getSocketName((SocketChannel)selectionKey.channel()),name,hostNickMap);
                 logger.debug("client name:"+name);
                 selectionKeys.addSelectionKey(name,selectionKey);
                 return;
             }
         }
     }
+
+    /**
+     * 处理关闭事件
+     * @param selectionKey
+     */
+    void handleClose(SelectionKey selectionKey){
+
+        SocketChannel socketChannel=(SocketChannel)selectionKey.channel();
+        logger.debug(String.format("before close:%s",socketChannelArr.getMap()));
+        socketChannelArr.remove(socketChannel);
+        logger.debug(String.format("after close:%s",socketChannelArr.getMap()));
+
+        String name=CommonUtils.getSocketName(socketChannel);
+        logger.debug(String.format("%s close",name));
+        Queue nicks=hostNickMap.get(name);
+        if(nicks!=null && nicks.size()>0){
+            logger.debug(String.format("before selectionKeys:%s",selectionKeys.getMap()));
+            for(Object nick:nicks){
+                if(selectionKeys.getSelectionKey((String)nick).equals(selectionKey)){
+                    selectionKeys.remove((String)nick);
+                }
+            }
+            logger.debug(String.format("after selectionKeys:%s",selectionKeys.getMap()));
+        }
+    }
+//
+//    void handleClose(SelectionKey selectionKey){
+//
+//        SocketChannel socketChannel=(SocketChannel)selectionKey.channel();
+//        logger.debug(String.format("before close:%d",socketChannelArr.size()));
+//        socketChannelArr.remove(socketChannel);
+//        logger.debug(String.format("after close:%d",socketChannelArr.size()));
+//
+//        String name=CommonUtils.getSocketName(socketChannel);
+//        logger.debug(String.format("%s close",name));
+//        Queue nicks=hostNickMap.get(name);
+//        if(nicks!=null && nicks.size()>0){
+//            logger.debug(String.format("before selectionKeys:%s",selectionKeys.getMap()));
+//            for(Object nick:nicks){
+//                selectionKeys.remove((String)nick);
+//            }
+//            logger.debug(String.format("after selectionKeys:%s",selectionKeys.getMap()));
+//        }
+//    }
 
     void handleConnect(SelectionKey selectionKey) throws IOException {
         ServerSocketChannel server = (ServerSocketChannel) selectionKey.channel();
@@ -92,7 +127,7 @@ public class CommonServer extends CommonWorker{
 
         selectionKey.attach(ByteBuffer.allocate(1024));
        // channels.addChannel(client);
-        final String clientName=client.socket().getInetAddress().getHostName();
+       // final String clientName=client.socket().getInetAddress().getHostName();
         socketChannelArr.add(client);
       //  selectionKey.interestOps(SelectionKey.OP_WRITE | SelectionKey.OP_READ);
         //selectionKeys.addSelectionKey(clientName,selectionKey);
@@ -141,28 +176,14 @@ public class CommonServer extends CommonWorker{
         if (selectionKey.isReadable()) {
             handleReadable(selectionKey, channel);
         }
-
-//        if(selectionKey.isWritable()){
-//            String clientName=channel.socket().getInetAddress().getHostName();
-//            List<Object> toWrites=map.get(clientName);
-//            if(toWrites!=null){
-//                map.remove(clientName);
-//                for(Object o:toWrites){
-//                    writeContent(selectionKey,channel,o);
-//                }
-//                toWrites.clear();
-//            }
-//            channel.register(selector, SelectionKey.OP_READ);
-//        }
     }
 
     void shutDown() throws IOException{
-        //start();
+        start();
     }
 
 
     public void shutDownReally() throws IOException {
-        //System.out.println("shut down");
         logger.debug("shut down really");
         running=false;
         selector.close();
@@ -173,7 +194,10 @@ public class CommonServer extends CommonWorker{
         Queue<Object> toWrites=map.get(name);
         if(toWrites==null){
             toWrites=new ArrayBlockingQueue<Object>(100);
-            map.putIfAbsent(name,toWrites);
+            Queue<Object> queue=map.putIfAbsent(name,toWrites);
+            if(queue!=null){
+                toWrites=queue;
+            }
         }
         toWrites.add(o);
     }
@@ -206,7 +230,7 @@ public class CommonServer extends CommonWorker{
                // SocketChannel socketChannel=channels.getChannel(toWrite.getKey());
                 SelectionKey key=selectionKeys.getSelectionKey(toWrite.getKey());
                 if(key==null){
-                    logger.error(String.format("%s selectionKey is null,%s",toWrite.getKey(),selectionKeys.selectionKeyMap));
+                    logger.error(String.format("%s selectionKey is null",toWrite.getKey()));
                     continue;
                 }
                 SocketChannel socketChannel=(SocketChannel)key.channel();
@@ -223,14 +247,14 @@ public class CommonServer extends CommonWorker{
         for(Map.Entry<String,Queue<Object>> toWrite:toWriteMap4Cha.entrySet()){
             Queue<Object> list=toWrite.getValue();
             if(list!=null && list.size()>0){
-                // SocketChannel socketChannel=channels.getChannel(toWrite.getKey());
                 Collection<SocketChannel> socketChannels=socketChannelArr.get(toWrite.getKey());
                 if(socketChannels==null || socketChannels.size()==0){
                     logger.error(String.format("%s socketChannels is empty,%s",toWrite.getKey(),socketChannels));
                     continue;
                 }
 
-                toWriteMap4Cha.remove(toWrite.getKey());
+                toWriteMap4Cha.remove(toWrite.getKey());//先移除，保证不会在此时再被其他线程写入
+
                for(SocketChannel socketChannel:socketChannels){
                    if(socketChannel!=null && socketChannel.isConnected()){
                        for(Object o1:list){
@@ -238,7 +262,7 @@ public class CommonServer extends CommonWorker{
                        }
                    }
                }
-                list.clear();
+                //list.clear();
             }
         }
     }

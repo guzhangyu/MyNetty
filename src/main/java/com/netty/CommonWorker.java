@@ -25,6 +25,9 @@ public abstract class CommonWorker {
 
     protected Selector selector;
 
+    /**
+     * 是否需要继续运行
+     */
     protected volatile Boolean running=true;
 
     /**
@@ -32,6 +35,9 @@ public abstract class CommonWorker {
      */
     CompleteHandler completeHandler;
 
+    /**
+     * 展示名称
+     */
     String name;
 
     //worker 线程，用来处理数据内容
@@ -78,8 +84,9 @@ public abstract class CommonWorker {
         if (count > 0) {
             executorService.execute(new Runnable() {
                 public void run() {
-                    List<Object> results = new ArrayList<Object>();
                     receiveBuffer.flip();
+
+                    List<Object> results = new ArrayList<Object>();
                     results.add(receiveBuffer);
                     for (ContentHandler handler : contentHandlers) {
                         List<Object> outs = new ArrayList<Object>();
@@ -90,24 +97,38 @@ public abstract class CommonWorker {
                         }
                         results = outs;
                     }
+
                     handleFirstConnect(selectionKey,results);
+
                     for (Object curResult : results) {
-                        logger.debug(name + "接收数据--:" + new String((byte[]) curResult));
+                        logger.debug(name + "接收数据:" + new String((byte[]) curResult));
                     }
                 }
             });
-              channel.register(selector, SelectionKey.OP_WRITE | SelectionKey.OP_READ); //TODO:可能要改成在这里注册写事件
+
+            channel.register(selector, SelectionKey.OP_WRITE | SelectionKey.OP_READ); //TODO:可能要改成在这里注册写事件
         } else if (count < 0) {
             //对端链路关闭
             selectionKey.cancel();
             channel.close();
+            handleClose(selectionKey);
         } else {
             //读到0字节，忽略
         }
     }
 
+    /**
+     * 客户端注册（登录）事件处理
+     * @param selectionKey
+     * @param results
+     */
      abstract void handleFirstConnect(SelectionKey selectionKey,List<Object> results);
 
+    /**
+     * 处理关闭事件
+     * @param selectionKey
+     */
+    abstract void handleClose(SelectionKey selectionKey);
 
     /**
      * 启动方法
@@ -116,7 +137,6 @@ public abstract class CommonWorker {
     public void start(){
         try{
             while(running){
-               // selector.wakeup();
                 //registerSelectionKey();//注册写兴趣
                 handleNotWritten();
 
@@ -141,16 +161,21 @@ public abstract class CommonWorker {
         }
     }
 
+    /**
+     * 写掉待写的数据
+     */
     abstract void handleNotWritten();
 
+    /**
+     * 关闭selector 和 channel
+     * @throws IOException
+     */
     void shutDown() throws IOException {
         selector.close();
         channel.close();
     }
 
     abstract void handleKey(SelectionKey selectionKey) throws IOException;
-
-    abstract void registerSelectionKey() throws ClosedChannelException;
 
     /**
      * 写内容
@@ -165,8 +190,8 @@ public abstract class CommonWorker {
 
             public List<Object> call() throws IOException {
                 results.add(content);
-                logger.debug(name + "发送数据 --:" + content);
-                //System.out.println(name + "发送数据 --:" + content);
+                logger.debug(name + "发送:" + content);
+
                 for (ContentHandler handler : contentHandlers) {
                     List<Object> outs = new ArrayList<Object>();
                     for (Object result : results) {
@@ -174,6 +199,7 @@ public abstract class CommonWorker {
                     }
                     results = outs;
                 }
+
                 if(attach!=null){
                     writeContent(channel,attach);
                 }else{
@@ -182,11 +208,17 @@ public abstract class CommonWorker {
                     }
                 }
                 return results;
+
             }
         });
 
     }
 
+    /**
+     * 从SelectionKey中获取附件 byteBuffer
+     * @param selectionKey
+     * @return
+     */
     private ByteBuffer getAttachment(SelectionKey selectionKey){
         if(selectionKey==null){
             return null;
@@ -194,6 +226,12 @@ public abstract class CommonWorker {
         return (ByteBuffer)selectionKey.attachment();
     }
 
+    /**
+     * 底层的写内容方法
+     * @param socketChannel
+     * @param sendBuffer
+     * @throws IOException
+     */
     void writeContent(SocketChannel socketChannel,ByteBuffer sendBuffer) throws IOException {
         sendBuffer.flip();
         while(sendBuffer.hasRemaining()){
