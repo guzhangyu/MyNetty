@@ -95,7 +95,7 @@ public abstract class CommonWorker {
                     }
                 }
             });
-            //  channel.register(selector, SelectionKey.OP_WRITE); //TODO:可能要改成在这里注册写事件
+              channel.register(selector, SelectionKey.OP_WRITE | SelectionKey.OP_READ); //TODO:可能要改成在这里注册写事件
         } else if (count < 0) {
             //对端链路关闭
             selectionKey.cancel();
@@ -148,22 +148,23 @@ public abstract class CommonWorker {
      * @throws IOException
      */
     void writeContent(final SelectionKey selectionKey,final SocketChannel channel,final Object content) {
+        final ByteBuffer attach=getAttachment(selectionKey);
         executorService.submit(new Callable<List<Object>>() {
             List<Object> results = new ArrayList<Object>();
 
             public List<Object> call() throws IOException {
                 results.add(content);
                 logger.debug(name + "发送数据 --:" + content);
-                System.out.println(name + "发送数据 --:" + content);
+                //System.out.println(name + "发送数据 --:" + content);
                 for (ContentHandler handler : contentHandlers) {
                     List<Object> outs = new ArrayList<Object>();
                     for (Object result : results) {
-                        handler.write((ByteBuffer)selectionKey.attachment(),channel, result, outs);
+                        handler.write(attach,channel, result, outs);
                     }
                     results = outs;
                 }
                 if(selectionKey.attachment()!=null){
-                    writeContent(channel,(ByteBuffer)selectionKey.attachment());
+                    writeContent(channel,attach);
                 }else{
                     for(Object result:results){
                         writeContent(channel,(ByteBuffer)result);
@@ -173,6 +174,13 @@ public abstract class CommonWorker {
             }
         });
 
+    }
+
+    private ByteBuffer getAttachment(SelectionKey selectionKey){
+        if(selectionKey==null){
+            return null;
+        }
+        return (ByteBuffer)selectionKey.attachment();
     }
 
     void writeContent(SocketChannel socketChannel,ByteBuffer sendBuffer) throws IOException {

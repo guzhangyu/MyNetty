@@ -13,7 +13,7 @@ public class SocketChannels {
 
     public void addChannel(SocketChannel channel){
         String name=channel.socket().getInetAddress().getHostName();
-        System.out.println("hostName:"+name);
+       // System.out.println("hostName:"+name);
         socketChannelMap.put(name,channel);
     }
 

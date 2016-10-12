@@ -88,16 +88,23 @@ public class CommonClient extends CommonWorker {
         if (selectionKey.isReadable()) {
             handleReadable(selectionKey, channel);
         }
-        if(selectionKey.isWritable() && !toWrites.isEmpty()){
-            for(Object o:toWrites){
-                writeContent(selectionKey,socketChannel,o);
-            }
-            toWrites.clear();
-            channel.register(selector, SelectionKey.OP_READ);
-        }
+//        if(selectionKey.isWritable() && !toWrites.isEmpty()){
+//            for(Object o:toWrites){
+//                writeContent(selectionKey,socketChannel,o);
+//            }
+//            toWrites.clear();
+//            channel.register(selector, SelectionKey.OP_READ);
+//        }
     }
 
     public void write(Object o) throws IOException {
         toWrites.add(o);
+       if(socketChannel.isConnected()){
+           for(Object toWrite:toWrites){
+               writeContent(null,socketChannel,toWrite);
+           }
+           toWrites.clear();
+           channel.register(selector, SelectionKey.OP_READ);
+       }
     }
 }
