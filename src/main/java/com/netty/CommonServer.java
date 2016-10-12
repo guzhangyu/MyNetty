@@ -114,18 +114,18 @@ public class CommonServer extends CommonWorker{
         if (selectionKey.isReadable()) {
             handleReadable(selectionKey, channel);
         }
-        if(selectionKey.isWritable()){
-            String clientName=channel.socket().getInetAddress().getHostName();
-            List<Object> toWrites=map.get(clientName);
-            if(toWrites!=null){
-                map.remove(clientName);
-                for(Object o:toWrites){
-                    writeContent(selectionKey,channel,o);
-                }
-                toWrites.clear();
-            }
-            channel.register(selector, SelectionKey.OP_READ);
-        }
+//        if(selectionKey.isWritable()){
+//            String clientName=channel.socket().getInetAddress().getHostName();
+//            List<Object> toWrites=map.get(clientName);
+//            if(toWrites!=null){
+//                map.remove(clientName);
+//                for(Object o:toWrites){
+//                    writeContent(selectionKey,channel,o);
+//                }
+//                toWrites.clear();
+//            }
+//            channel.register(selector, SelectionKey.OP_READ);
+//        }
     }
 
     void shutDown() throws IOException{
@@ -148,5 +148,28 @@ public class CommonServer extends CommonWorker{
             toWriteMap.putIfAbsent(name,toWrites);
         }
         toWrites.add(o);
+
+        for(Map.Entry<String,List<Object>> toWrite:toWriteMap.entrySet()){
+            List<Object> list=toWrite.getValue();
+            if(list!=null && list.size()>0){
+                SocketChannel socketChannel=channels.getChannel(toWrite.getKey());
+                if(socketChannel!=null && socketChannel.isConnected()){
+                    for(Object o1:list){
+                        writeContent(null,socketChannel,o1);
+                    }
+                }
+                list.clear();
+            }
+        }
+//        String clientName=channel.socket().getInetAddress().getHostName();
+//        List<Object> toWrites=map.get(clientName);
+//        if(toWrites!=null){
+//            map.remove(clientName);
+//            for(Object o:toWrites){
+//                writeContent(selectionKey,channel,o);
+//            }
+//            toWrites.clear();
+//        }
+//        channel.register(selector, SelectionKey.OP_READ);
     }
 }

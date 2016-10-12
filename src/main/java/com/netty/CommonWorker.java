@@ -115,7 +115,7 @@ public abstract class CommonWorker {
         try{
             while(running){
                // selector.wakeup();
-                registerSelectionKey();//注册写兴趣
+                //registerSelectionKey();//注册写兴趣
 
                 int count=selector.select();
                 if(count>0){
