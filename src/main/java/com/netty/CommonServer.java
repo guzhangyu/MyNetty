@@ -72,7 +72,7 @@ public class CommonServer extends CommonWorker{
         channels.addChannel(client);
         final String clientName=client.socket().getInetAddress().getHostName();
 
-        write(clientName, "test server");
+       // write(clientName, "test server");
         // channel.register(selector, SelectionKey.OP_WRITE);
     }
 

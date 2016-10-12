@@ -111,7 +111,7 @@ public abstract class CommonWorker {
      * 启动方法
      * @throws IOException
      */
-    public void start()throws IOException {
+    public void start(){
         try{
             while(running){
                // selector.wakeup();
@@ -127,8 +127,14 @@ public abstract class CommonWorker {
                     selectionKeys.clear();
                 }
             }
+        }catch (IOException e){
+            e.printStackTrace();
         }finally {
-            shutDown();
+            try {
+                shutDown();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -163,7 +169,7 @@ public abstract class CommonWorker {
                     }
                     results = outs;
                 }
-                if(selectionKey.attachment()!=null){
+                if(attach!=null){
                     writeContent(channel,attach);
                 }else{
                     for(Object result:results){
