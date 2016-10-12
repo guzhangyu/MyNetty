@@ -127,7 +127,7 @@ public abstract class CommonWorker {
                     selectionKeys.clear();
                 }
             }
-        }catch (IOException e){
+        }catch (Exception e){
             e.printStackTrace();
         }finally {
             try {

@@ -1,5 +1,6 @@
 package com.netty;
 
+import com.netty.assist.SelectionKeys;
 import com.netty.assist.SocketChannels;
 import org.apache.log4j.Logger;
 
@@ -21,11 +22,11 @@ public class CommonServer extends CommonWorker{
 
     Logger logger=Logger.getLogger(CommonServer.class);
 
-   // private SelectionKeys selectionKeys=new SelectionKeys();
+    private SelectionKeys selectionKeys=new SelectionKeys();
 
     ServerSocketChannel serverSocketChannel;
 
-    SocketChannels channels=new SocketChannels();
+    //SocketChannels channels=new SocketChannels();
 
     ConcurrentHashMap<String,List<Object>> toWriteMap=new ConcurrentHashMap<String, List<Object>>();
 
@@ -49,16 +50,16 @@ public class CommonServer extends CommonWorker{
     }
 
     void registerSelectionKey() throws ClosedChannelException {
-        if(!toWriteMap.isEmpty()){
-            for(String name:toWriteMap.keySet()){
-                SocketChannel socketChannel=channels.getChannel(name);
-                if(socketChannel!=null){
-                    socketChannel.register(selector, SelectionKey.OP_WRITE);
-                }else{
-                    logger.debug(name + "不存在 channel");
-                }
-            }
-        }
+//        if(!toWriteMap.isEmpty()){
+//            for(String name:toWriteMap.keySet()){
+//                SocketChannel socketChannel=channels.getChannel(name);
+//                if(socketChannel!=null){
+//                    socketChannel.register(selector, SelectionKey.OP_WRITE);
+//                }else{
+//                    logger.debug(name + "不存在 channel");
+//                }
+//            }
+//        }
     }
 
     void handleConnect(SelectionKey selectionKey) throws IOException {
@@ -66,13 +67,16 @@ public class CommonServer extends CommonWorker{
 
         final SocketChannel client = server.accept();
         client.configureBlocking(false);
-        client.register(selector, SelectionKey.OP_READ);
+        client.register(selector, SelectionKey.OP_READ|SelectionKey.OP_WRITE);
+
 
         selectionKey.attach(ByteBuffer.allocate(1024));
-        channels.addChannel(client);
+       // channels.addChannel(client);
         final String clientName=client.socket().getInetAddress().getHostName();
+      //  selectionKey.interestOps(SelectionKey.OP_WRITE | SelectionKey.OP_READ);
+        //selectionKeys.addSelectionKey(clientName,selectionKey);
 
-       // write(clientName, "test server");
+        write(clientName, "test server");
         // channel.register(selector, SelectionKey.OP_WRITE);
     }
 
@@ -104,6 +108,7 @@ public class CommonServer extends CommonWorker{
             try {
                 handleConnect(selectionKey);
             } catch (IOException e) {
+                logger.error(e);
                 e.printStackTrace();
             }
             return;
@@ -114,6 +119,9 @@ public class CommonServer extends CommonWorker{
         if (selectionKey.isReadable()) {
             handleReadable(selectionKey, channel);
         }
+
+        selectionKeys.addSelectionKey(selectionKey);
+
 //        if(selectionKey.isWritable()){
 //            String clientName=channel.socket().getInetAddress().getHostName();
 //            List<Object> toWrites=map.get(clientName);
@@ -129,7 +137,7 @@ public class CommonServer extends CommonWorker{
     }
 
     void shutDown() throws IOException{
-        start();
+        //start();
     }
 
 
@@ -152,10 +160,16 @@ public class CommonServer extends CommonWorker{
         for(Map.Entry<String,List<Object>> toWrite:toWriteMap.entrySet()){
             List<Object> list=toWrite.getValue();
             if(list!=null && list.size()>0){
-                SocketChannel socketChannel=channels.getChannel(toWrite.getKey());
+               // SocketChannel socketChannel=channels.getChannel(toWrite.getKey());
+                SelectionKey key=selectionKeys.getSelectionKey(toWrite.getKey());
+                if(key==null){
+                    logger.error(String.format("%s selectionKey is null,%s",toWrite.getKey(),selectionKeys.selectionKeyMap));
+                    continue;
+                }
+                SocketChannel socketChannel=(SocketChannel)key.channel();
                 if(socketChannel!=null && socketChannel.isConnected()){
                     for(Object o1:list){
-                        writeContent(null,socketChannel,o1);
+                        writeContent(key,socketChannel,o1);
                     }
                 }
                 list.clear();
