@@ -1,12 +1,14 @@
 package com.netty;
 
-import com.netty.hander.CompleteHandler;
 import com.netty.hander.ContentHandler;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.*;
+import java.nio.channels.SelectableChannel;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -48,7 +50,7 @@ public abstract class CommonWorker {
     /**
      * 主 channel
      */
-    SelectableChannel channel;
+    SelectableChannel channel; //TODO:可以考虑拿掉
 
     public CommonWorker(String name){
         this.name=name;
@@ -60,6 +62,56 @@ public abstract class CommonWorker {
         return this;
     }
 
+
+
+    /**
+     * 客户端注册（登录）事件处理
+     * @param selectionKey
+     * @param results
+     */
+     abstract void handleFirstConnect(SelectionKey selectionKey,List<Object> results);
+
+    /**
+     * 处理关闭事件
+     * @param selectionKey
+     */
+    abstract void handleClose(SelectionKey selectionKey);
+
+    /**
+     * 启动方法
+     * @throws IOException
+     */
+    public void start(){
+        try{
+            while(running){
+                //registerSelectionKey();//注册写兴趣
+                handleNotWritten();
+
+                int count=selector.select();
+                if(count>0){
+                    final Set<SelectionKey> selectionKeys= selector.selectedKeys();
+
+                    for(final SelectionKey selectionKey:selectionKeys){
+                        handleKey(selectionKey);
+                    }
+                    selectionKeys.clear();
+                }
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }finally {
+            shutDown();
+        }
+    }
+
+    /**
+     * 写掉待写的数据
+     */
+    abstract void handleNotWritten();
+
+    abstract void shutDown();
+
+    abstract void handleKey(SelectionKey selectionKey) throws IOException;
 
     /**
      * 读事件的处理
@@ -110,66 +162,6 @@ public abstract class CommonWorker {
     }
 
     /**
-     * 客户端注册（登录）事件处理
-     * @param selectionKey
-     * @param results
-     */
-     abstract void handleFirstConnect(SelectionKey selectionKey,List<Object> results);
-
-    /**
-     * 处理关闭事件
-     * @param selectionKey
-     */
-    abstract void handleClose(SelectionKey selectionKey);
-
-    /**
-     * 启动方法
-     * @throws IOException
-     */
-    public void start(){
-        try{
-            while(running){
-                //registerSelectionKey();//注册写兴趣
-                handleNotWritten();
-
-                int count=selector.select();
-                if(count>0){
-                    final Set<SelectionKey> selectionKeys= selector.selectedKeys();
-
-                    for(final SelectionKey selectionKey:selectionKeys){
-                        handleKey(selectionKey);
-                    }
-                    selectionKeys.clear();
-                }
-            }
-        }catch (Exception e){
-            e.printStackTrace();
-        }finally {
-            try {
-                shutDown();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    /**
-     * 写掉待写的数据
-     */
-    abstract void handleNotWritten();
-
-    /**
-     * 关闭selector 和 channel
-     * @throws IOException
-     */
-    void shutDown() throws IOException {
-        selector.close();
-        channel.close();
-    }
-
-    abstract void handleKey(SelectionKey selectionKey) throws IOException;
-
-    /**
      * 写内容
      * @param channel
      * @param content
@@ -192,7 +184,7 @@ public abstract class CommonWorker {
                     results = outs;
                 }
 
-                if(attach!=null){
+                if(attach!=null){//此时都已经直接写到attach中了
                     writeContent(channel,attach);
                 }else{
                     for(Object result:results){

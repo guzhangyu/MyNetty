@@ -50,7 +50,6 @@ public class CommonServer extends CommonWorker{
 
         logger.debug(String.format("serverName:%s",name));
 
-
         ServerSocketChannel serverSocketChannel= ServerSocketChannel.open();
         channel=serverSocketChannel;
         serverSocketChannel.configureBlocking(false);
@@ -140,7 +139,7 @@ public class CommonServer extends CommonWorker{
         //selectionKeys.addSelectionKey(clientName,selectionKey);
 
         //write(clientName, "test server");
-        writeContent(null,client,"test server");
+        writeContent(null,client,"服务端连接反馈！");
         // channel.register(selector, SelectionKey.OP_WRITE);
     }
 
@@ -185,7 +184,7 @@ public class CommonServer extends CommonWorker{
         }
     }
 
-    void shutDown() throws IOException{
+    void shutDown(){
         start();
     }
 
@@ -247,7 +246,7 @@ public class CommonServer extends CommonWorker{
                         writeContent(key,socketChannel,o1);
                     }
                 }
-                list.clear();
+               // list.clear();
             }
         }
 

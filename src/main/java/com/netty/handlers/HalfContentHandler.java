@@ -53,6 +53,8 @@ public class HalfContentHandler implements ContentHandler {
             curLen+=len;
         }while(curLen<byteBuffer.limit());
 
+        //TODO:多出来的数据会不会有问题?
+
         logger.debug(String.format("after read,outs:%d",outs.size()));
         return null;
     }

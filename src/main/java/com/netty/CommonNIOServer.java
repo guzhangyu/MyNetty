@@ -45,9 +45,13 @@ public class CommonNIOServer extends CommonServer {
             public void run() {
                 new ReadInput().read(new HandleStr() {
                     public void handleStr(String str) throws Exception {
-                        String strs[]=str.split(" ");
-                        commonNIOServer.write(strs[0],strs[1]);
-                        System.out.println(str);
+                      try{
+                          String strs[]=str.split(" ");
+                          commonNIOServer.write(strs[0],strs[1]);
+                          System.out.println(str);
+                      }catch (Exception e){
+                          e.printStackTrace();
+                      }
                     }
                 });
             }

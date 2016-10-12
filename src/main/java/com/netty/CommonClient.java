@@ -106,12 +106,21 @@ public class CommonClient extends CommonWorker {
      */
      void handleClose(SelectionKey selectionKey){
         logger.debug("server closed!");
-         try {
-             shutDown();
-         } catch (IOException e) {
-             e.printStackTrace();
-         }
+         shutDown();
      }
+
+    /**
+     * 关闭selector 和 channel
+     * @throws IOException
+     */
+    void shutDown() {
+        try {
+            selector.close();
+            channel.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     /**
      * 将所有需要写的数据一次性写掉
