@@ -114,6 +114,7 @@ public abstract class CommonWorker {
     public void start()throws IOException {
         try{
             while(running){
+               // selector.wakeup();
                 registerSelectionKey();//注册写兴趣
 
                 int count=selector.select();
@@ -153,6 +154,7 @@ public abstract class CommonWorker {
             public List<Object> call() throws IOException {
                 results.add(content);
                 logger.debug(name + "发送数据 --:" + content);
+                System.out.println(name + "发送数据 --:" + content);
                 for (ContentHandler handler : contentHandlers) {
                     List<Object> outs = new ArrayList<Object>();
                     for (Object result : results) {

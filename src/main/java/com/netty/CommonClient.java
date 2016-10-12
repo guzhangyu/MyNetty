@@ -4,6 +4,8 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.SocketOption;
+import java.net.SocketOptions;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -30,9 +32,11 @@ public class CommonClient extends CommonWorker {
 
         socketChannel=SocketChannel.open();
         socketChannel.configureBlocking(false);
+        //socketChannel.setOption(SocketOptions.)
+
 
         selector= Selector.open();
-        //  channel.socket().setTcpNoDelay(true);
+      //   socketChannel.socket().setTcpNoDelay(true);
         socketChannel.register(selector, SelectionKey.OP_CONNECT);//注册连接服务器兴趣
         socketChannel.connect(new InetSocketAddress(host, port));//要连接的服务器
 
