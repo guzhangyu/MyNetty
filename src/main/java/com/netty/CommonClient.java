@@ -10,6 +10,7 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 
@@ -53,6 +54,9 @@ public class CommonClient extends CommonWorker {
         }
     }
 
+    void handleFirstConnect(SelectionKey selectionKey,List<Object> results){
+
+    }
 
     /**
      * 对selectionKey的处理
@@ -99,12 +103,16 @@ public class CommonClient extends CommonWorker {
 
     public void write(Object o) throws IOException {
         toWrites.add(o);
-       if(socketChannel.isConnected()){
-           for(Object toWrite:toWrites){
-               writeContent(null,socketChannel,toWrite);
-           }
-           toWrites.clear();
-           //channel.register(selector, SelectionKey.OP_READ);
-       }
+        handleNotWritten();
+    }
+
+    void handleNotWritten() {
+        if(socketChannel.isConnected()){
+            for(Object toWrite:toWrites){
+                writeContent(null,socketChannel,toWrite);
+            }
+            toWrites.clear();
+            //channel.register(selector, SelectionKey.OP_READ);
+        }
     }
 }

@@ -18,6 +18,10 @@ public class SelectionKeys {
         selectionKeyMap.put(name,selectionKey);
     }
 
+    public Boolean containsKey(String key){
+        return selectionKeyMap.containsKey(key);
+    }
+
     public void addSelectionKey(SelectionKey selectionKey){
         SocketChannel channel=(SocketChannel)selectionKey.channel();
         selectionKeyMap.put(channel.socket().getInetAddress().getHostName(),selectionKey);

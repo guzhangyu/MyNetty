@@ -69,7 +69,7 @@ public abstract class CommonWorker {
      * @param channel
      * @throws IOException
      */
-    void handleReadable(SelectionKey selectionKey, final SocketChannel channel) throws IOException {
+    void handleReadable(final SelectionKey selectionKey, final SocketChannel channel) throws IOException {
         //TODO:扩容，并发
         final ByteBuffer receiveBuffer = selectionKey.attachment()==null?ByteBuffer.allocate(1024):(ByteBuffer)selectionKey.attachment();
 
@@ -90,6 +90,7 @@ public abstract class CommonWorker {
                         }
                         results = outs;
                     }
+                    handleFirstConnect(selectionKey,results);
                     for (Object curResult : results) {
                         logger.debug(name + "接收数据--:" + new String((byte[]) curResult));
                     }
@@ -105,6 +106,7 @@ public abstract class CommonWorker {
         }
     }
 
+     abstract void handleFirstConnect(SelectionKey selectionKey,List<Object> results);
 
 
     /**
@@ -116,6 +118,7 @@ public abstract class CommonWorker {
             while(running){
                // selector.wakeup();
                 //registerSelectionKey();//注册写兴趣
+                handleNotWritten();
 
                 int count=selector.select();
                 if(count>0){
@@ -137,6 +140,8 @@ public abstract class CommonWorker {
             }
         }
     }
+
+    abstract void handleNotWritten();
 
     void shutDown() throws IOException {
         selector.close();
