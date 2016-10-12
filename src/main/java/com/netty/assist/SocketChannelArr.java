@@ -1,23 +1,21 @@
 package com.netty.assist;
 
 import java.nio.channels.SocketChannel;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.ArrayBlockingQueue;
 
 /**
  * Created by guzy on 16/10/12.
  */
 public class SocketChannelArr {
 
-    Map<String,List<SocketChannel>> map=new HashMap<String, List<SocketChannel>>();
+    Map<String,Queue<SocketChannel>> map=new HashMap<String, Queue<SocketChannel>>();
 
     public void add(SocketChannel socketChannel){
         String name=socketChannel.socket().getInetAddress().getHostName();
-        List<SocketChannel> list=map.get(name);
+        Queue<SocketChannel> list=map.get(name);
         if(list==null){
-            list=new ArrayList<SocketChannel>();
+            list=new ArrayBlockingQueue<SocketChannel>(100);
             map.put(name,list);
         }
 
@@ -28,7 +26,7 @@ public class SocketChannelArr {
         list.add(socketChannel);
     }
 
-    public List<SocketChannel> get(String name){
+    public Collection<SocketChannel> get(String name){
         return map.get(name);
     }
 }

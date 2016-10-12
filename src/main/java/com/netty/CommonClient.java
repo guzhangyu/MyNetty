@@ -106,12 +106,13 @@ public class CommonClient extends CommonWorker {
         handleNotWritten();
     }
 
-    void handleNotWritten() {
+    synchronized void handleNotWritten() {
         if(socketChannel.isConnected()){
             for(Object toWrite:toWrites){
                 writeContent(null,socketChannel,toWrite);
+                toWrites.remove(toWrite);
             }
-            toWrites.clear();
+           // toWrites.clear();
             //channel.register(selector, SelectionKey.OP_READ);
         }
     }

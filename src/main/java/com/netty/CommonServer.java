@@ -10,10 +10,7 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
+import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -100,7 +97,8 @@ public class CommonServer extends CommonWorker{
       //  selectionKey.interestOps(SelectionKey.OP_WRITE | SelectionKey.OP_READ);
         //selectionKeys.addSelectionKey(clientName,selectionKey);
 
-        write(clientName, "test server");
+        //write(clientName, "test server");
+        writeContent(null,client,"test server");
         // channel.register(selector, SelectionKey.OP_WRITE);
     }
 
@@ -171,10 +169,6 @@ public class CommonServer extends CommonWorker{
         channel.close();
     }
 
-    public void writeByChannel(String name,Object o){
-
-    }
-
     private void addObjToMap(String name,Object o,Map<String,Queue<Object>> map){
         Queue<Object> toWrites=map.get(name);
         if(toWrites==null){
@@ -204,7 +198,8 @@ public class CommonServer extends CommonWorker{
 //        channel.register(selector, SelectionKey.OP_READ);
     }
 
-    void handleNotWritten() {
+
+    synchronized void handleNotWritten() {
         for(Map.Entry<String,Queue<Object>> toWrite:toWriteMap.entrySet()){
             Queue<Object> list=toWrite.getValue();
             if(list!=null && list.size()>0){
@@ -216,6 +211,7 @@ public class CommonServer extends CommonWorker{
                 }
                 SocketChannel socketChannel=(SocketChannel)key.channel();
                 if(socketChannel!=null && socketChannel.isConnected()){
+                    toWriteMap.remove(toWrite.getKey());
                     for(Object o1:list){
                         writeContent(key,socketChannel,o1);
                     }
@@ -228,11 +224,13 @@ public class CommonServer extends CommonWorker{
             Queue<Object> list=toWrite.getValue();
             if(list!=null && list.size()>0){
                 // SocketChannel socketChannel=channels.getChannel(toWrite.getKey());
-                List<SocketChannel> socketChannels=socketChannelArr.get(toWrite.getKey());
+                Collection<SocketChannel> socketChannels=socketChannelArr.get(toWrite.getKey());
                 if(socketChannels==null || socketChannels.size()==0){
                     logger.error(String.format("%s socketChannels is empty,%s",toWrite.getKey(),socketChannels));
                     continue;
                 }
+
+                toWriteMap4Cha.remove(toWrite.getKey());
                for(SocketChannel socketChannel:socketChannels){
                    if(socketChannel!=null && socketChannel.isConnected()){
                        for(Object o1:list){
