@@ -40,18 +40,25 @@ public class CommonNIOClient extends CommonClient {
             }
         }).start();
 
-        new ReadInput().read(new HandleStr() {
-            public void handleStr(String str) throws Exception {
-                //client.write(str);
-                System.out.println(str);
-              //  client.selector.notifyAll();
-                client.selector.wakeup();
-            }
-        });
+//        try {
+//            Thread.sleep(2000l);
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
+
+//        new ReadInput().read(new HandleStr() {
+//            public void handleStr(String str) throws Exception {
+//                //client.write(str);
+//                System.out.println(str);
+//              //  client.selector.notifyAll();
+//                client.selector.wakeup();
+//            }
+//        });
 
          new Thread(new Runnable() {
                 public void run() {
                     try {
+                        System.out.println("begin write");
                         client.write("te");
                         client.write("ted");
                         client.write("testt");

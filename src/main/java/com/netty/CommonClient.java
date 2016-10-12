@@ -49,7 +49,7 @@ public class CommonClient extends CommonWorker {
      */
     void registerSelectionKey() throws ClosedChannelException {
         if(!toWrites.isEmpty()){
-            socketChannel.register(selector, SelectionKey.OP_WRITE);
+            socketChannel.register(selector, SelectionKey.OP_WRITE);//SelectionKey.OP_READ |
         }
     }
 
