@@ -1,5 +1,6 @@
 package com.netty;
 
+import com.netty.hander.CompleteHandler;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -20,10 +21,20 @@ public class CommonClient extends CommonWorker {
     Logger logger=Logger.getLogger(CommonClient.class);
 
     //客户端channel
-    SocketChannel socketChannel;
+    private SocketChannel socketChannel;
 
     //用于写的内容列表
-    Queue<Object> toWrites=new ArrayBlockingQueue<Object>(100);
+    private Queue<Object> toWrites=new ArrayBlockingQueue<Object>(100);
+
+    /**
+     * 连接完成的处理器
+     */
+    CompleteHandler completeHandler;
+
+    public CommonClient setCompleteHandler(CompleteHandler completeHandler) {
+        this.completeHandler = completeHandler;
+        return this;
+    }
 
     public CommonClient(String host, int port,String name) throws IOException {
         super(name);

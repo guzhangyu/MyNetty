@@ -27,14 +27,21 @@ public class CommonServer extends CommonWorker{
 
     private SelectionKeys selectionKeys=new SelectionKeys();
 
-    SocketChannelArr socketChannelArr=new SocketChannelArr();
+    private SocketChannelArr socketChannelArr=new SocketChannelArr();
 
-    ServerSocketChannel serverSocketChannel;
-
+    /**
+     * 主机-昵称的对应关系
+     */
     ConcurrentHashMap<String,Queue<Object>> hostNickMap=new ConcurrentHashMap<String, Queue<Object>>();
 
+    /**
+     * 要通过selectionKey 昵称 写的内容
+     */
     ConcurrentHashMap<String,Queue<Object>> toWriteMap=new ConcurrentHashMap<String, Queue<Object>>();
 
+    /**
+     * 要通过channel host 写的内容
+     */
     ConcurrentHashMap<String,Queue<Object>> toWriteMap4Cha=new ConcurrentHashMap<String, Queue<Object>>();
 
     public CommonServer(int port,String name) throws IOException {
@@ -44,7 +51,7 @@ public class CommonServer extends CommonWorker{
         logger.debug(String.format("serverName:%s",name));
 
 
-        serverSocketChannel= ServerSocketChannel.open();
+        ServerSocketChannel serverSocketChannel= ServerSocketChannel.open();
         channel=serverSocketChannel;
         serverSocketChannel.configureBlocking(false);
 

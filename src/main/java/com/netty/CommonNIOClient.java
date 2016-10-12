@@ -14,7 +14,6 @@ import java.nio.channels.SocketChannel;
  */
 public class CommonNIOClient extends CommonClient {
 
-
     public CommonNIOClient(String host, int port, String name) throws IOException {
         super(host, port, name);
     }

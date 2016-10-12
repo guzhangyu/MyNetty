@@ -30,10 +30,11 @@ public abstract class CommonWorker {
      */
     protected volatile Boolean running=true;
 
+
     /**
-     * 连接完成的处理器
+     * 内容处理链
      */
-    CompleteHandler completeHandler;
+    private List<ContentHandler> contentHandlers=new ArrayList<ContentHandler>();
 
     /**
      * 展示名称
@@ -43,10 +44,6 @@ public abstract class CommonWorker {
     //worker 线程，用来处理数据内容
     private ExecutorService executorService;
 
-    /**
-     * 内容处理链
-     */
-    private List<ContentHandler> contentHandlers=new ArrayList<ContentHandler>();
 
     /**
      * 主 channel
@@ -56,11 +53,6 @@ public abstract class CommonWorker {
     public CommonWorker(String name){
         this.name=name;
         executorService= Executors.newFixedThreadPool(10);
-    }
-
-    public CommonWorker setCompleteHandler(CompleteHandler completeHandler) {
-        this.completeHandler = completeHandler;
-        return this;
     }
 
     public CommonWorker addContentHandler(ContentHandler contentHandler){
