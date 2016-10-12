@@ -52,6 +52,14 @@ public class CommonNIOClient extends CommonClient {
                 }
             }
         }).start();
+
+        try {
+            Thread.sleep(5000l);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("begin write");
         client.write("te");
         client.write("ted");
         client.write("testt");
