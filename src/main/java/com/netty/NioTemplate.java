@@ -18,25 +18,32 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
+ * nio 操作模板类
  * server 与 client 的基类
  * Created by guzy on 16/9/18.
  */
-public abstract class CommonWorker {
+public abstract class NioTemplate {
 
-    Logger logger=Logger.getLogger(CommonWorker.class);
+    Logger logger=Logger.getLogger(NioTemplate.class);
 
     protected Selector selector;
 
+
     /**
-     * 是否需要继续运行
+     * 主 channel
      */
-    protected volatile Boolean running=true;
+    SelectableChannel channel; //TODO:可以考虑拿掉
 
 
     /**
      * 内容处理链
      */
     private List<ContentHandler> contentHandlers=new ArrayList<ContentHandler>();
+
+    /**
+     * 是否需要继续运行
+     */
+    protected volatile Boolean running=true;
 
     /**
      * 展示名称
@@ -47,17 +54,12 @@ public abstract class CommonWorker {
     private ExecutorService executorService;
 
 
-    /**
-     * 主 channel
-     */
-    SelectableChannel channel; //TODO:可以考虑拿掉
-
-    public CommonWorker(String name){
+    public NioTemplate(String name){
         this.name=name;
         executorService= Executors.newFixedThreadPool(10);
     }
 
-    public CommonWorker addContentHandler(ContentHandler contentHandler){
+    public NioTemplate addContentHandler(ContentHandler contentHandler){
         contentHandlers.add(contentHandler);
         return this;
     }
@@ -76,6 +78,15 @@ public abstract class CommonWorker {
      * @param selectionKey
      */
     abstract void handleClose(SelectionKey selectionKey);
+
+    /**
+     * 写掉待写的数据
+     */
+    abstract void handleNotWritten();
+
+    abstract void shutDown();
+
+    abstract void handleKey(SelectionKey selectionKey) throws IOException;
 
     /**
      * 启动方法
@@ -108,24 +119,15 @@ public abstract class CommonWorker {
     }
 
     /**
-     * 写掉待写的数据
-     */
-    abstract void handleNotWritten();
-
-    abstract void shutDown();
-
-    abstract void handleKey(SelectionKey selectionKey) throws IOException;
-
-    /**
      * 读事件的处理
      * @param selectionKey
-     * @param channel
      * @throws IOException
      */
-    void handleReadable(final SelectionKey selectionKey, final SocketChannel channel) throws IOException {
+    void handleReadable(final SelectionKey selectionKey) throws IOException {
         //TODO:扩容，并发
         final ByteBuffer receiveBuffer = selectionKey.attachment()==null?ByteBuffer.allocate(1024):(ByteBuffer)selectionKey.attachment();
 
+        final SocketChannel channel = (SocketChannel) selectionKey.channel();
         //读取数据
         int count = channel.read(receiveBuffer);
         if (count > 0) {
@@ -171,7 +173,7 @@ public abstract class CommonWorker {
      * @throws IOException
      */
     void writeContent(final SelectionKey selectionKey,final SocketChannel channel,final Object content) {
-        final ByteBuffer attach=getAttachment(selectionKey);
+        final ByteBuffer attach=(ByteBuffer)selectionKey.attachment();
         executorService.submit(new Callable<List<Object>>() {
             List<Object> results = new ArrayList<Object>();
 
@@ -199,18 +201,6 @@ public abstract class CommonWorker {
             }
         });
 
-    }
-
-    /**
-     * 从SelectionKey中获取附件 byteBuffer
-     * @param selectionKey
-     * @return
-     */
-    private ByteBuffer getAttachment(SelectionKey selectionKey){
-        if(selectionKey==null){
-            return null;
-        }
-        return (ByteBuffer)selectionKey.attachment();
     }
 
     /**

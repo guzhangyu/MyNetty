@@ -12,14 +12,11 @@ import java.nio.channels.SocketChannel;
  * nio 客户端
  * Created by guzy on 16/9/18.
  */
-public class CommonNIOClient extends CommonClient {
+public class ClientTest {
 
-    public CommonNIOClient(String host, int port, String name) throws IOException {
-        super(host, port, name);
-    }
 
     public static void main(String[] args) throws IOException {
-        final CommonNIOClient client=new CommonNIOClient("127.0.0.1",8889,"client");
+        final NioClient client=new NioClient("127.0.0.1",8889,"client");
 
         client.setCompleteHandler(new CompleteHandler() {
             public void handle(SocketChannel socketChannel) throws IOException {

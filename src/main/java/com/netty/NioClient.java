@@ -16,27 +16,28 @@ import java.util.concurrent.ArrayBlockingQueue;
  * 公共的客户端
  * Created by guzy on 16/9/20.
  */
-public class CommonClient extends CommonWorker {
+public class NioClient extends NioTemplate {
 
-    Logger logger=Logger.getLogger(CommonClient.class);
+    Logger logger=Logger.getLogger(NioClient.class);
 
     //客户端channel
     private SocketChannel socketChannel;
-
-    //用于写的内容列表
-    private Queue<Object> toWrites=new ArrayBlockingQueue<Object>(100);
 
     /**
      * 连接完成的处理器
      */
     CompleteHandler completeHandler;
 
-    public CommonClient setCompleteHandler(CompleteHandler completeHandler) {
+    //用于写的内容列表
+    private Queue<Object> toWrites=new ArrayBlockingQueue<Object>(100);
+
+
+    public NioClient setCompleteHandler(CompleteHandler completeHandler) {
         this.completeHandler = completeHandler;
         return this;
     }
 
-    public CommonClient(String host, int port,String name) throws IOException {
+    public NioClient(String host, int port, String name) throws IOException {
         super(name);
 
         socketChannel=SocketChannel.open();
@@ -50,23 +51,12 @@ public class CommonClient extends CommonWorker {
         this.channel=socketChannel;
     }
 
-    void handleFirstConnect(SelectionKey selectionKey,List<Object> results){
-    }
 
     /**
      * 对selectionKey的处理
      * @param selectionKey
      */
     void handleKey(final SelectionKey selectionKey) throws IOException {
-        handleKeyInner(selectionKey);
-    }
-
-    /**
-     * selectionKey线程内处理方法
-     * @param selectionKey
-     * @throws IOException
-     */
-    void handleKeyInner(SelectionKey selectionKey) throws IOException {
 
         final SocketChannel channel = (SocketChannel) selectionKey.channel();
 
@@ -84,7 +74,7 @@ public class CommonClient extends CommonWorker {
         }
 
         if (selectionKey.isReadable()) {
-            handleReadable(selectionKey, channel);
+            handleReadable(selectionKey);
         }
 //        if(selectionKey.isWritable() && !toWrites.isEmpty()){
 //            for(Object o:toWrites){
@@ -95,9 +85,24 @@ public class CommonClient extends CommonWorker {
 //        }
     }
 
+
     public void write(Object o) throws IOException {
         toWrites.add(o);
         handleNotWritten();
+    }
+
+    /**
+     * 将所有需要写的数据一次性写掉
+     */
+    synchronized void handleNotWritten() {
+        if(socketChannel.isConnected()){
+            for(Object toWrite:toWrites){
+                writeContent(null,socketChannel,toWrite);
+                toWrites.remove(toWrite);
+            }
+            // toWrites.clear();
+            //channel.register(selector, SelectionKey.OP_READ);
+        }
     }
 
     /**
@@ -122,17 +127,6 @@ public class CommonClient extends CommonWorker {
         }
     }
 
-    /**
-     * 将所有需要写的数据一次性写掉
-     */
-    synchronized void handleNotWritten() {
-        if(socketChannel.isConnected()){
-            for(Object toWrite:toWrites){
-                writeContent(null,socketChannel,toWrite);
-                toWrites.remove(toWrite);
-            }
-           // toWrites.clear();
-            //channel.register(selector, SelectionKey.OP_READ);
-        }
+    void handleFirstConnect(SelectionKey selectionKey,List<Object> results){
     }
 }

@@ -13,7 +13,10 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -21,9 +24,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * 服务端公共类
  * Created by guzy on 16/9/20.
  */
-public class CommonServer extends CommonWorker{
+public class NioServer extends NioTemplate {
 
-    Logger logger=Logger.getLogger(CommonServer.class);
+    Logger logger=Logger.getLogger(NioServer.class);
 
     private SelectionKeys selectionKeys=new SelectionKeys();
 
@@ -44,7 +47,7 @@ public class CommonServer extends CommonWorker{
      */
     ConcurrentHashMap<String,Queue<Object>> toWriteMap4Cha=new ConcurrentHashMap<String, Queue<Object>>();
 
-    public CommonServer(int port,String name) throws IOException {
+    public NioServer(int port, String name) throws IOException {
 
         super(name);
 
@@ -60,6 +63,23 @@ public class CommonServer extends CommonWorker{
         selector= Selector.open();
         serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
         logger.debug("server start --- " + port);
+    }
+
+    @Override
+    void handleKey(final SelectionKey selectionKey) throws IOException {
+        if (selectionKey.isAcceptable()) {
+            try {
+                handleConnect(selectionKey);
+            } catch (IOException e) {
+                logger.error(e);
+                e.printStackTrace();
+            }
+            return;
+        }
+
+        if (selectionKey.isReadable()) {
+            handleReadable(selectionKey);
+        }
     }
 
     void handleFirstConnect(SelectionKey selectionKey,List<Object> results){
@@ -159,33 +179,10 @@ public class CommonServer extends CommonWorker{
 //    }
 
 
-
-    @Override
-    void handleKey(final SelectionKey selectionKey) throws IOException {
-        handleKey(selectionKey, toWriteMap);
-    }
-
-
-    void handleKey(SelectionKey selectionKey,Map<String,Queue<Object>> map) throws IOException {
-        if (selectionKey.isAcceptable()) {
-            try {
-                handleConnect(selectionKey);
-            } catch (IOException e) {
-                logger.error(e);
-                e.printStackTrace();
-            }
-            return;
-        }
-
-        final SocketChannel channel = (SocketChannel) selectionKey.channel();
-
-        if (selectionKey.isReadable()) {
-            handleReadable(selectionKey, channel);
-        }
-    }
-
     void shutDown(){
-        start();
+        if(running){
+            start();
+        }
     }
 
 
@@ -194,18 +191,6 @@ public class CommonServer extends CommonWorker{
         running=false;
         selector.close();
         channel.close();
-    }
-
-    private void addObjToMap(String name,Object o,Map<String,Queue<Object>> map){
-        Queue<Object> toWrites=map.get(name);
-        if(toWrites==null){
-            toWrites=new ArrayBlockingQueue<Object>(100);
-            Queue<Object> queue=map.putIfAbsent(name,toWrites);
-            if(queue!=null){
-                toWrites=queue;
-            }
-        }
-        toWrites.add(o);
     }
 
     public void write(String name,Object o) throws IOException {
@@ -271,5 +256,17 @@ public class CommonServer extends CommonWorker{
                 //list.clear();
             }
         }
+    }
+
+    private void addObjToMap(String name,Object o,Map<String,Queue<Object>> map){
+        Queue<Object> toWrites=map.get(name);
+        if(toWrites==null){
+            toWrites=new ArrayBlockingQueue<Object>(100);
+            Queue<Object> queue=map.putIfAbsent(name,toWrites);
+            if(queue!=null){
+                toWrites=queue;
+            }
+        }
+        toWrites.add(o);
     }
 }

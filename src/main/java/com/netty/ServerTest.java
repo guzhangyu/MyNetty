@@ -10,16 +10,12 @@ import java.io.IOException;
  * nio 服务类
  * Created by guzy on 16/9/18.
  */
-public class CommonNIOServer extends CommonServer {
+public class ServerTest {
 
-
-    public CommonNIOServer(int port, String name) throws IOException {
-        super(port, name);
-    }
 
     public static void main(String[] args) throws IOException{
         int port = 8889;
-        final CommonNIOServer commonNIOServer=new CommonNIOServer(port,"server");
+        final NioServer commonNIOServer=new NioServer(port,"server");
         commonNIOServer.addContentHandler(new HalfContentHandler());
 
 //        new Thread(new Runnable() {
