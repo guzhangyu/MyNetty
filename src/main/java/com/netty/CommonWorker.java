@@ -82,6 +82,9 @@ public abstract class CommonWorker {
      * @throws IOException
      */
     public void start(){
+        if(!running){
+            return;
+        }
         try{
             while(running){
                 //registerSelectionKey();//注册写兴趣

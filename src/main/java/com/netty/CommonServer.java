@@ -74,7 +74,7 @@ public class CommonServer extends CommonWorker{
                 addObjToMap(CommonUtils.getSocketName((SocketChannel)selectionKey.channel()),name,hostNickMap);
                 logger.debug("client name:"+name);
                 selectionKeys.addSelectionKey(name,selectionKey);
-                return;
+                return;//??
             }
         }
     }
@@ -256,7 +256,7 @@ public class CommonServer extends CommonWorker{
                 Collection<SocketChannel> socketChannels=socketChannelArr.get(toWrite.getKey());
                 if(socketChannels==null || socketChannels.size()==0){
                     logger.error(String.format("%s socketChannels is empty,%s",toWrite.getKey(),socketChannels));
-                    continue;
+                    continue;//此时如果remove就可以解决那种不断轮询这个主机的情况
                 }
 
                 toWriteMap4Cha.remove(toWrite.getKey());//先移除，保证不会在此时再被其他线程写入

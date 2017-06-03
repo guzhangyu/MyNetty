@@ -2,7 +2,6 @@ package com.netty.hander;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
-import java.nio.channels.spi.AbstractSelectableChannel;
 import java.util.List;
 
 /**

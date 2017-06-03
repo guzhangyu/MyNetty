@@ -19,7 +19,7 @@ public class CommonNIOClient extends CommonClient {
     }
 
     public static void main(String[] args) throws IOException {
-        final CommonNIOClient client=new CommonNIOClient("127.0.0.1",8888,"client");
+        final CommonNIOClient client=new CommonNIOClient("127.0.0.1",8889,"client");
 
         client.setCompleteHandler(new CompleteHandler() {
             public void handle(SocketChannel socketChannel) throws IOException {
