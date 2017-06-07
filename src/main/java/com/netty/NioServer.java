@@ -83,10 +83,12 @@ public class NioServer extends NioTemplate {
     }
 
     void handleFirstConnect(SelectionKey selectionKey,List<Object> results){
+        logger.debug("enter handleFirst");
         if(selectionKeys.containsValue(selectionKey)){
             logger.debug("already has selectionKey");
             return;
         }
+        selectionKeys.addSelectionKey(CommonUtils.getSocketName((SocketChannel)selectionKey.channel()),selectionKey);
         for(Object result:results){
             String res=new String((byte[])result);
             if(res.startsWith("MyName:")){
@@ -108,6 +110,7 @@ public class NioServer extends NioTemplate {
         SocketChannel socketChannel=(SocketChannel)selectionKey.channel();
         logger.debug(String.format("before close:%s",socketChannelArr.getMap()));
         socketChannelArr.remove(socketChannel);
+        selectionKeys.remove(CommonUtils.getSocketName((SocketChannel)selectionKey.channel()));
         logger.debug(String.format("after close:%s",socketChannelArr.getMap()));
 
         String name=CommonUtils.getSocketName(socketChannel);
@@ -151,7 +154,8 @@ public class NioServer extends NioTemplate {
         client.register(selector, SelectionKey.OP_READ|SelectionKey.OP_WRITE);
 
 
-        selectionKey.attach(ByteBuffer.allocate(1024));
+        ByteBuffer attach=ByteBuffer.allocate(1024);
+        selectionKey.attach(attach);
        // channels.addChannel(client);
        // final String clientName=client.socket().getInetAddress().getHostName();
         socketChannelArr.add(client);
@@ -159,7 +163,7 @@ public class NioServer extends NioTemplate {
         //selectionKeys.addSelectionKey(clientName,selectionKey);
 
         //write(clientName, "test server");
-        writeContent(null,client,"服务端连接反馈！");
+        writeContent(attach,client,"服务端连接反馈！");
         // channel.register(selector, SelectionKey.OP_WRITE);
     }
 
@@ -181,7 +185,7 @@ public class NioServer extends NioTemplate {
 
     void shutDown(){
         if(running){
-            start();
+            //start();
         }
     }
 
@@ -228,7 +232,7 @@ public class NioServer extends NioTemplate {
                 if(socketChannel!=null && socketChannel.isConnected()){
                     toWriteMap.remove(toWrite.getKey());
                     for(Object o1:list){
-                        writeContent(key,socketChannel,o1);
+                        writeContent((ByteBuffer)key.attachment(),socketChannel,o1);
                     }
                 }
                // list.clear();
@@ -244,12 +248,18 @@ public class NioServer extends NioTemplate {
                     continue;//此时如果remove就可以解决那种不断轮询这个主机的情况
                 }
 
+                SelectionKey key=selectionKeys.getSelectionKey(toWrite.getKey());
+                if(key==null){
+                    logger.error(String.format("%s selectionKey is null",toWrite.getKey()));
+                    continue;
+                }
+
                 toWriteMap4Cha.remove(toWrite.getKey());//先移除，保证不会在此时再被其他线程写入
 
                for(SocketChannel socketChannel:socketChannels){
                    if(socketChannel!=null && socketChannel.isConnected()){
                        for(Object o1:list){
-                           writeContent(null,socketChannel,o1);
+                           writeContent((ByteBuffer)key.attachment(),socketChannel,o1);
                        }
                    }
                }

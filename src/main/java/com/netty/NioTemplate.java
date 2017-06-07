@@ -172,8 +172,7 @@ public abstract class NioTemplate {
      * @param content
      * @throws IOException
      */
-    void writeContent(final SelectionKey selectionKey,final SocketChannel channel,final Object content) {
-        final ByteBuffer attach=(ByteBuffer)selectionKey.attachment();
+    void writeContent(final ByteBuffer attach,final SocketChannel channel,final Object content) {
         executorService.submit(new Callable<List<Object>>() {
             List<Object> results = new ArrayList<Object>();
 

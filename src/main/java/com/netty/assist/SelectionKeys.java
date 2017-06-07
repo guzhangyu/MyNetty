@@ -27,7 +27,7 @@ public class SelectionKeys {
 
     public void addSelectionKey(SelectionKey selectionKey){
         SocketChannel channel=(SocketChannel)selectionKey.channel();
-        selectionKeyMap.put(channel.socket().getInetAddress().getHostName(),selectionKey);
+        selectionKeyMap.put(CommonUtils.getSocketName(channel),selectionKey);
     }
 
     public Map<String,SelectionKey> getMap(){

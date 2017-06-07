@@ -26,7 +26,6 @@ public class NIOClient {
     public NIOClient(String host,int port) throws IOException{
         SocketChannel channel=SocketChannel.open();
         channel.configureBlocking(false);
-        //Socket socket=channel.socket();
 
         selector=Selector.open();
         channel.register(selector, SelectionKey.OP_CONNECT);
