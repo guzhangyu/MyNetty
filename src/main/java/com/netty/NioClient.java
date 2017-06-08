@@ -5,6 +5,7 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
@@ -22,6 +23,8 @@ public class NioClient extends NioTemplate {
 
     //客户端channel
     private SocketChannel socketChannel;
+
+    private SelectionKey selectionKey;
 
     /**
      * 连接完成的处理器
@@ -57,6 +60,10 @@ public class NioClient extends NioTemplate {
      * @param selectionKey
      */
     void handleKey(final SelectionKey selectionKey) throws IOException {
+        if(this.selectionKey==null && selectionKey.isWritable()){//&& selectionKey.isValid()
+            this.selectionKey=selectionKey;
+            logger.debug("add writable selectionKey");
+        }
 
         final SocketChannel channel = (SocketChannel) selectionKey.channel();
 
@@ -96,8 +103,9 @@ public class NioClient extends NioTemplate {
      */
     synchronized void handleNotWritten() {
         if(socketChannel.isConnected()){
+            ByteBuffer buf=this.selectionKey==null?null:(ByteBuffer)this.selectionKey.attachment();
             for(Object toWrite:toWrites){
-                writeContent(null,socketChannel,toWrite);
+                writeContent(buf,socketChannel,toWrite);
                 toWrites.remove(toWrite);
             }
             // toWrites.clear();

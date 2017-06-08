@@ -43,7 +43,7 @@ public class NioServer extends NioTemplate {
     ConcurrentHashMap<String,Queue<Object>> toWriteMap=new ConcurrentHashMap<String, Queue<Object>>();
 
     /**
-     * 要通过channel host 写的内容
+     * 要通过channel host 写的内容,此时还没有可以用的selectionKey
      */
     ConcurrentHashMap<String,Queue<Object>> toWriteMap4Cha=new ConcurrentHashMap<String, Queue<Object>>();
 
@@ -83,16 +83,17 @@ public class NioServer extends NioTemplate {
     }
 
     void handleFirstConnect(SelectionKey selectionKey,List<Object> results){
-        logger.debug("enter handleFirst");
+        String name=CommonUtils.getSocketName((SocketChannel)selectionKey.channel());
+        logger.debug(name+" enter handleFirst");
         if(selectionKeys.containsValue(selectionKey)){
             logger.debug("already has selectionKey");
             return;
         }
-        selectionKeys.addSelectionKey(CommonUtils.getSocketName((SocketChannel)selectionKey.channel()),selectionKey);
+        selectionKeys.addSelectionKey(name,selectionKey);
         for(Object result:results){
             String res=new String((byte[])result);
             if(res.startsWith("MyName:")){
-                String name=res.substring(7);
+                name=res.substring(7);
                 addObjToMap(CommonUtils.getSocketName((SocketChannel)selectionKey.channel()),name,hostNickMap);
                 logger.debug("client name:"+name);
                 selectionKeys.addSelectionKey(name,selectionKey);
@@ -110,7 +111,7 @@ public class NioServer extends NioTemplate {
         SocketChannel socketChannel=(SocketChannel)selectionKey.channel();
         logger.debug(String.format("before close:%s",socketChannelArr.getMap()));
         socketChannelArr.remove(socketChannel);
-        selectionKeys.remove(CommonUtils.getSocketName((SocketChannel)selectionKey.channel()));
+        selectionKeys.remove(selectionKey);
         logger.debug(String.format("after close:%s",socketChannelArr.getMap()));
 
         String name=CommonUtils.getSocketName(socketChannel);
@@ -223,18 +224,21 @@ public class NioServer extends NioTemplate {
             Queue<Object> list=toWrite.getValue();
             if(list!=null && list.size()>0){
                // SocketChannel socketChannel=channels.getChannel(toWrite.getKey());
-                SelectionKey key=selectionKeys.getSelectionKey(toWrite.getKey());
-                if(key==null){
+                Queue<SelectionKey> keys=selectionKeys.getSelectionKey(toWrite.getKey());
+                if(keys==null || keys.isEmpty()){
                     logger.error(String.format("%s selectionKey is null",toWrite.getKey()));
                     continue;
                 }
-                SocketChannel socketChannel=(SocketChannel)key.channel();
-                if(socketChannel!=null && socketChannel.isConnected()){
-                    toWriteMap.remove(toWrite.getKey());
-                    for(Object o1:list){
-                        writeContent((ByteBuffer)key.attachment(),socketChannel,o1);
+                for(SelectionKey key:keys){
+                    SocketChannel socketChannel=(SocketChannel)key.channel();
+                    if(socketChannel!=null && socketChannel.isConnected()){
+                        toWriteMap.remove(toWrite.getKey());
+                        for(Object o1:list){
+                            writeContent((ByteBuffer)key.attachment(),socketChannel,o1);
+                        }
                     }
                 }
+
                // list.clear();
             }
         }
@@ -248,18 +252,12 @@ public class NioServer extends NioTemplate {
                     continue;//此时如果remove就可以解决那种不断轮询这个主机的情况
                 }
 
-                SelectionKey key=selectionKeys.getSelectionKey(toWrite.getKey());
-                if(key==null){
-                    logger.error(String.format("%s selectionKey is null",toWrite.getKey()));
-                    continue;
-                }
-
                 toWriteMap4Cha.remove(toWrite.getKey());//先移除，保证不会在此时再被其他线程写入
 
                for(SocketChannel socketChannel:socketChannels){
                    if(socketChannel!=null && socketChannel.isConnected()){
                        for(Object o1:list){
-                           writeContent((ByteBuffer)key.attachment(),socketChannel,o1);
+                           writeContent(null,socketChannel,o1);
                        }
                    }
                }

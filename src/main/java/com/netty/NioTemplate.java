@@ -178,7 +178,7 @@ public abstract class NioTemplate {
 
             public List<Object> call() throws IOException {
                 results.add(content);
-                logger.debug(name + "发送:" + content);
+                logger.debug(name + "发送:" + content+",attach is :"+attach);
 
                 for (ContentHandler handler : contentHandlers) {
                     List<Object> outs = new ArrayList<Object>();
@@ -195,6 +195,7 @@ public abstract class NioTemplate {
                         writeContent(channel,(ByteBuffer)result);
                     }
                 }
+                logger.debug(name + "发送:" + content+",complete");
                 return results;
 
             }

@@ -15,21 +15,28 @@ public class ReadInput {
      * @param handleStr
      */
     public void read(HandleStr handleStr){
-        BufferedReader reader=new BufferedReader(new InputStreamReader(System.in));
-        String line=null;
-        try {
-            while((line=reader.readLine())!=null){
+        synchronized (System.in){
+//            try {
+//                System.in.wait();
+//            } catch (InterruptedException e) {
+//                e.printStackTrace();
+//            }
+            BufferedReader reader=new BufferedReader(new InputStreamReader(System.in));
+            String line=null;
+            try {
+                while((line=reader.readLine())!=null){
 
-                handleStr.handleStr(line);
+                    handleStr.handleStr(line);
 
-                if(line.equalsIgnoreCase("EOF")){
-                    reader.close();
-                   // System.out.println("test");
-                    break;
+                    if(line.equalsIgnoreCase("EOF")){
+                        reader.close();
+                        // System.out.println("test");
+                        break;
+                    }
                 }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-        } catch (Exception e) {
-            e.printStackTrace();
         }
     }
 }
