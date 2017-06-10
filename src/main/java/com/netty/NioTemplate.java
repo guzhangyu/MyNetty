@@ -133,7 +133,10 @@ public abstract class NioTemplate {
         if (count > 0) {
             executorService.execute(new Runnable() {
                 public void run() {
+                    logger.debug("attach is:"+selectionKey.attachment());
+                    logger.debug("receiveBuffer before is:"+receiveBuffer);
                     receiveBuffer.flip();
+                    logger.debug("receiveBuffer after is:"+receiveBuffer);
 
                     List<Object> results = new ArrayList<Object>();
                     results.add(receiveBuffer);
@@ -210,10 +213,15 @@ public abstract class NioTemplate {
      * @throws IOException
      */
     void writeContent(SocketChannel socketChannel,ByteBuffer sendBuffer) throws IOException {
-        sendBuffer.flip();
-        while(sendBuffer.hasRemaining()){
-            socketChannel.write(sendBuffer);
-        }
+        logger.debug("end start");
+       synchronized (sendBuffer){
+           sendBuffer.flip();
+           //粘包的根源
+           while(sendBuffer.hasRemaining()){
+               socketChannel.write(sendBuffer);
+           }
+       }
+        logger.debug("end write");
     }
 
 }

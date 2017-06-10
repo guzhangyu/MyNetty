@@ -21,6 +21,7 @@ public class HalfContentHandler implements ContentHandler {
         byte[] result=((String)o).getBytes();
 
         ByteBuffer buf=attach==null?ByteBuffer.allocate(result.length+4):attach;
+        buf.clear();
         buf.putInt(result.length);
         buf.put(result);
 
@@ -40,6 +41,7 @@ public class HalfContentHandler implements ContentHandler {
             //读取长度
             curLen+=4;
            // byteBuffer.flip();
+        //    logger.debug("byteBuffer is:"+byteBuffer);
             len=byteBuffer.getInt();
             //logger.debug(len);
 

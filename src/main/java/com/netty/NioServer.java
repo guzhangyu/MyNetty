@@ -77,9 +77,20 @@ public class NioServer extends NioTemplate {
             return;
         }
 
+        if (selectionKey.isWritable()||selectionKey.isReadable()) {
+            if(selectionKey.attachment()==null){
+                logger.debug("enter attach");
+                ByteBuffer attach=ByteBuffer.allocate(1024);
+                selectionKey.attach(attach);
+            }
+
+        }
+
         if (selectionKey.isReadable()) {
             handleReadable(selectionKey);
         }
+
+
     }
 
     void handleFirstConnect(SelectionKey selectionKey,List<Object> results){
@@ -155,8 +166,8 @@ public class NioServer extends NioTemplate {
         client.register(selector, SelectionKey.OP_READ|SelectionKey.OP_WRITE);
 
 
-        ByteBuffer attach=ByteBuffer.allocate(1024);
-        selectionKey.attach(attach);
+//        ByteBuffer attach=ByteBuffer.allocate(1024);
+//        selectionKey.attach(attach);
        // channels.addChannel(client);
        // final String clientName=client.socket().getInetAddress().getHostName();
         socketChannelArr.add(client);
@@ -164,7 +175,8 @@ public class NioServer extends NioTemplate {
         //selectionKeys.addSelectionKey(clientName,selectionKey);
 
         //write(clientName, "test server");
-        writeContent(attach,client,"服务端连接反馈！");
+        write(CommonUtils.getSocketName(client),"服务端连接反馈！");
+       // writeContent(attach,client,"服务端连接反馈！");
         // channel.register(selector, SelectionKey.OP_WRITE);
     }
 
