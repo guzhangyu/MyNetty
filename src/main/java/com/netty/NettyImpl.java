@@ -13,38 +13,20 @@ import java.util.concurrent.*;
  * server 与 client 的基类
  * Created by guzy on 16/9/18.
  */
-public abstract class CommonWorker {
-
-    protected Selector selector;
-
-    CompleteHandler completeHandler;
-
+public abstract class NettyImpl {
     String name;
 
-    private ExecutorService executorService;
+    ExecutorService mainReactor,subReactor;
 
-    Executor bossExecs;
-
+    CompleteHandler completeHandler;
     private List<ContentHandler> contentHandlers=new ArrayList<ContentHandler>();
 
+    protected Selector selector;
     SelectableChannel channel;
 
-    public CommonWorker(String name){
+    public NettyImpl(String name){
         this.name=name;
-        executorService= Executors.newFixedThreadPool(10);
-    }
-
-    public CompleteHandler getCompleteHandler() {
-        return completeHandler;
-    }
-
-    public CommonWorker setCompleteHandler(CompleteHandler completeHandler) {
-        this.completeHandler = completeHandler;
-        return this;
-    }
-
-    public void addContentHandler(ContentHandler contentHandler){
-        contentHandlers.add(contentHandler);
+        subReactor = Executors.newFixedThreadPool(10);
     }
 
     public void start()throws IOException {
@@ -54,18 +36,24 @@ public abstract class CommonWorker {
                selector.select();
                final Set<SelectionKey> selectionKeys= selector.selectedKeys();
                for(final SelectionKey selectionKey:selectionKeys){
-                   if (selectionKey.isAcceptable()) {
+                   try{
+                     if (selectionKey.isAcceptable()) {
                         handleConnect(selectionKey);
                        continue;
+                     }
+                   } catch (CancelledKeyException ex) {
+                       selectionKey.cancel();
+                       ex.printStackTrace();
+                       continue;
                    }
-                   bossExecs.execute(new Runnable() {
+                   mainReactor.execute(new Runnable() {
                        public void run() {
                            try {
-                             //  System.out.println(String.format("selectionKey isWritable:%s,isReadable:%s",selectionKey.isWritable(),selectionKey.isReadable()));
+                               //  System.out.println(String.format("selectionKey isWritable:%s,isReadable:%s",selectionKey.isWritable(),selectionKey.isReadable()));
                                handleKey(selectionKey);
-                           } catch (IOException ex) {
+                           } catch (IOException | CancelledKeyException ex) {
                                selectionKey.cancel();
-
+                               ex.printStackTrace();
                            }
                        }
                    });
@@ -105,22 +93,17 @@ public abstract class CommonWorker {
         int count = channel.read(receiveBuffer);
         if (count > 0) {
            // System.out.println("count:"+count);
-            executorService.execute(new Runnable() {
+            subReactor.execute(new Runnable() {
                 public void run() {
                     List<Object> results = new ArrayList<Object>();
                     receiveBuffer.flip();
                     results.add(receiveBuffer);
                     for (ContentHandler handler : contentHandlers) {
-                        List<Object> outs = new ArrayList<Object>();
-                        Iterator resultItr = results.iterator();
-                        while (resultItr.hasNext()) {
-                            Object curResult = resultItr.next();
-                            handler.read(channel, curResult, outs);
+                        List<Object> newResults = new ArrayList<Object>();
+                        for (Object result : results) {
+                            handler.read(channel, result, newResults);
                         }
-                        results = outs;
-                    }
-                    for (Object curResult : results) {
-                        System.out.println(name + "接收数据--:" + new String((byte[]) curResult));
+                        results = newResults;
                     }
                 }
             });
@@ -140,13 +123,12 @@ public abstract class CommonWorker {
      * @param content
      * @throws IOException
      */
-    void writeContent(final SocketChannel channel,final Object content) {
-        executorService.submit(new Callable<List<Object>>() {
+    public void writeContent(final SocketChannel channel,final Object content) {
+        subReactor.submit(new Callable<List<Object>>() {
             List<Object> results = new ArrayList<Object>();
 
             public List<Object> call() {
                 results.add(content);
-                System.out.println(name + "发送数据 --:" + content);
                 for (ContentHandler handler : contentHandlers) {
                     List<Object> outs = new ArrayList<Object>();
                     for (Object result : results) {
@@ -154,11 +136,11 @@ public abstract class CommonWorker {
                     }
                     results = outs;
                 }
-                bossExecs.execute(new Runnable() {
+                mainReactor.execute(new Runnable() {
                     public void run() {
-                        for(Object result:results){
+                        for (Object result : results) {
                             try {
-                                writeContent(channel,(ByteBuffer)result);
+                                writeContent(channel, (ByteBuffer) result);
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
@@ -189,6 +171,23 @@ public abstract class CommonWorker {
     void writeContent(SocketChannel socketChannel,ByteBuffer sendBuffer) throws IOException {
         sendBuffer.flip();
         socketChannel.write(sendBuffer);
+    }
+
+
+    public CompleteHandler getCompleteHandler() {
+        return completeHandler;
+    }
+
+    public NettyImpl setCompleteHandler(CompleteHandler completeHandler) {
+        this.completeHandler = completeHandler;
+        return this;
+    }
+
+    public NettyImpl addContentHandlers(ContentHandler... contentHandlers){
+        for(ContentHandler contentHandler:contentHandlers){
+            this.contentHandlers.add(contentHandler);
+        }
+        return this;
     }
 
 }

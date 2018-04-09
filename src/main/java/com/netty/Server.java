@@ -14,18 +14,14 @@ import java.util.concurrent.Executors;
 /**
  * Created by guzy on 16/9/20.
  */
-public class Server extends CommonWorker{
-
-   // private SelectionKeys selectionKeys=new SelectionKeys();
-
+public class Server extends NettyImpl {
     ServerSocketChannel serverSocketChannel;
-
 
     SocketChannels channels=new SocketChannels();
 
     public Server(int port, String name) throws IOException {
         super(name);
-        bossExecs= Executors.newFixedThreadPool(10);
+        mainReactor = Executors.newFixedThreadPool(10);
 
         serverSocketChannel= ServerSocketChannel.open();
         channel=serverSocketChannel;
@@ -48,7 +44,7 @@ public class Server extends CommonWorker{
         client.register(selector, SelectionKey.OP_READ);
         channels.addChannel(client);
 
-        bossExecs.execute(new Runnable() {
+        mainReactor.execute(new Runnable() {
             public void run() {
                 String clientName=client.socket().getInetAddress().getHostName();
                 try {
@@ -82,12 +78,6 @@ public class Server extends CommonWorker{
         }else{
             System.out.println(name+"不存在 channel");
         }
-//        SelectionKey selectionKey=selectionKeys.getSelectionKey(name);
-//        if(selectionKey!=null){
-//            writeContent((SocketChannel)selectionKey.channel(),o);
-//        }else{
-//            System.out.println(name+"不存在 selectionKey");
-//        }
     }
 
     /**

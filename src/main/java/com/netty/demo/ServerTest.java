@@ -1,6 +1,9 @@
-package com.netty;
+package com.netty.demo;
 
-import com.netty.handlers.HalfContentHandler;
+import com.netty.Server;
+import com.netty.hander.impl.HalfContentHandler;
+import com.netty.hander.impl.ReadLogHandler;
+import com.netty.hander.impl.WriteLogHandler;
 
 import java.io.IOException;
 
@@ -18,7 +21,7 @@ public class ServerTest extends Server {
     public static void main(String[] args) throws IOException{
         int port = 8888;
         final ServerTest server=new ServerTest(port,"server");
-        server.addContentHandler(new HalfContentHandler());
+        server.addContentHandlers(new WriteLogHandler(),new HalfContentHandler(),new ReadLogHandler());
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -30,6 +33,13 @@ public class ServerTest extends Server {
             }
         }).start();
 
-        server.write("127.0.0.1","fdaf");
+
+        SystemInHandle.handle(new StrOp() {
+            @Override
+            public void deal(String str) throws IOException {
+                String[] arr=str.split(":");
+                server.write(arr[0],arr[1]);
+            }
+        });
     }
 }

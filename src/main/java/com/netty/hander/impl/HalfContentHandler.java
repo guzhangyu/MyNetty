@@ -1,4 +1,4 @@
-package com.netty.handlers;
+package com.netty.hander.impl;
 
 import com.netty.hander.ContentHandler;
 
@@ -30,7 +30,7 @@ public class HalfContentHandler implements ContentHandler {
             curLen+=4;
            // byteBuffer.flip();
             len=byteBuffer.getInt();
-            System.out.println(len);
+            //System.out.println(len);
             byte[] arr=new byte[len];
             byteBuffer.position(curLen);
             byteBuffer.get(arr,0,len);

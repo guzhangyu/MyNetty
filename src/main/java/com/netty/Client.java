@@ -7,22 +7,20 @@ import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 /**
  * 公共的客户端
  * Created by guzy on 16/9/20.
  */
-public class Client extends CommonWorker {
-   // private SelectionKey selectionKey;
-
+public class Client extends NettyImpl {
     SocketChannel socketChannel;
 
     Queue<Object> toWrites=new ArrayBlockingQueue<Object>(100);
 
     public Client(String host, int port, String name) throws IOException {
         super(name);
-        bossExecs= new SimpleThreadExecutors();
+        mainReactor = Executors.newSingleThreadExecutor();
 
         socketChannel=SocketChannel.open();
         socketChannel.configureBlocking(false);
@@ -37,9 +35,13 @@ public class Client extends CommonWorker {
 
     @Override
     void handleConnect(SelectionKey selectionKey) throws IOException {
-
     }
 
+    /**
+     * 主方法
+     * @param selectionKey
+     * @throws IOException
+     */
     @Override
     void handleKey(SelectionKey selectionKey) throws IOException {
 
@@ -92,15 +94,5 @@ public class Client extends CommonWorker {
 //            socketChannel.register(selector,SelectionKey.OP_WRITE);
 //            System.out.println("selectionKey empty ");
 //        }
-    }
-
-    /**
-     * 当前线程直接执行策略
-     * Created by guzy on 16/9/20.
-     */
-    public class SimpleThreadExecutors implements Executor {
-        public void execute(Runnable command) {
-            command.run();
-        }
     }
 }

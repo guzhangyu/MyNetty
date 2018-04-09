@@ -1,7 +1,10 @@
-package com.netty;
+package com.netty.demo;
 
+import com.netty.Client;
 import com.netty.hander.CompleteHandler;
-import com.netty.handlers.HalfContentHandler;
+import com.netty.hander.impl.HalfContentHandler;
+import com.netty.hander.impl.ReadLogHandler;
+import com.netty.hander.impl.WriteLogHandler;
 
 import java.io.IOException;
 import java.nio.channels.SocketChannel;
@@ -19,27 +22,13 @@ public class ClientTest extends Client {
 
     public static void main(String[] args) throws IOException {
         final ClientTest client=new ClientTest("127.0.0.1",8888,"client");
-        CompleteHandler completeHandler=new CompleteHandler() {
+        client.setCompleteHandler(new CompleteHandler() {
             public void handle(SocketChannel socketChannel) throws IOException {
                 //首次写数据
                 client.writeContent(socketChannel,"Hello,Server");
             }
-        };
-        client.setCompleteHandler(completeHandler);
-//        client.contentHandlers.add(new ContentHandler() {
-//            public Object write(AbstractSelectableChannel channel, Object o,List<Object> outs) {
-//                Object result=((String)o).getBytes();
-//                outs.add(result);
-//                return result;
-//            }
-//
-//            public Object read(AbstractSelectableChannel channel, Object o,List<Object> outs) {
-//                Object result= new String((byte[])o);
-//                outs.add(result);
-//                return result;
-//            }
-//        });
-        client.addContentHandler(new HalfContentHandler());
+        });
+        client.addContentHandlers(new WriteLogHandler(), new HalfContentHandler(), new ReadLogHandler());
         new Thread(new Runnable() {
             public void run() {
                 try {
@@ -60,6 +49,13 @@ public class ClientTest extends Client {
         client.write("te");
         client.write("ted");
         client.write("testt");
+
+        SystemInHandle.handle(new StrOp() {
+            @Override
+            public void deal(String str) throws IOException {
+                client.write(str);
+            }
+        });
     }
 
 }
