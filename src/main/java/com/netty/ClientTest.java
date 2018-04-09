@@ -4,24 +4,21 @@ import com.netty.hander.CompleteHandler;
 import com.netty.handlers.HalfContentHandler;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 
 /**
  * nio 客户端
  * Created by guzy on 16/9/18.
  */
-public class CommonNIOClient extends CommonClient {
+public class ClientTest extends Client {
 
 
-    public CommonNIOClient(String host, int port, String name) throws IOException {
+    public ClientTest(String host, int port, String name) throws IOException {
         super(host, port, name);
     }
 
     public static void main(String[] args) throws IOException {
-        final CommonNIOClient client=new CommonNIOClient("127.0.0.1",8888,"client");
+        final ClientTest client=new ClientTest("127.0.0.1",8888,"client");
         CompleteHandler completeHandler=new CompleteHandler() {
             public void handle(SocketChannel socketChannel) throws IOException {
                 //首次写数据
